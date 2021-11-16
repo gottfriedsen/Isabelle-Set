@@ -1,7 +1,7 @@
 section \<open>Structures\<close>
 
-theory Structures
-imports Object
+theory Structures_Set
+imports Object_Set
 
 begin
 

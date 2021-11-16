@@ -5,7 +5,7 @@ text \<open>
   characters.
 \<close>
 
-theory String
+theory String_Set
 imports Ordinal
 begin
 

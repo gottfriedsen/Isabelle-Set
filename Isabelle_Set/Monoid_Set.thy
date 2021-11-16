@@ -8,8 +8,8 @@ text \<open>
   most of it will be automated away in future work.
 \<close>
 
-theory Monoid
-imports Structures
+theory Monoid_Set
+imports Structures_Set
 
 begin
 

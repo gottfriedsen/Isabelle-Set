@@ -1,7 +1,7 @@
 chapter \<open>Rings\<close>
 
 theory Ring
-imports Monoid
+imports Monoid_Set
 
 begin
 

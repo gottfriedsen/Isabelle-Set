@@ -11,25 +11,11 @@ session Isabelle_Set = "HOL" +
     HOTG
     Auto2_HOTG
     Soft_Types
-  directories
-    "Test_Examples"
   theories
     "Isabelle_Set"
 
     (* Other library theories *)
     (* "Isabelle_Set/Category" *)
-
-    (* Examples and compatibility layers *)
-    (* "Isabelle_Set/Test_Examples/Tarski_A"
-    "Test_Examples/Typing_Examples"
-    "Test_Examples/Implicit_Args"
-    "Test_Examples/Implicit_Assumptions"
-    "Test_Examples/Discharge_Types"
-    "Test_Examples/MyList"
-    "Test_Examples/Simp_Test"
-    "Test_Examples/Matrix"
-    "Test_Examples/Derivation_Test"
-    "Test_Examples/Cicm2019_Demo" *)
 
 (*session Auto2_Isabelle_Set = "Isabelle_Set" +
   description \<open>Instantiation of Auto2 for Isabelle/Set.\<close>

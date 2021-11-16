@@ -1,7 +1,7 @@
 section \<open>Structure objects\<close>
 
-theory Object
-imports Function String
+theory Object_Set
+imports Function String_Set
 
 begin
 

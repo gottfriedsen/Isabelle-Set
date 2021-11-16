@@ -1,12 +1,11 @@
 chapter \<open>Natural numbers\<close>
 
-theory Nat
-imports Ordinal Function Monoid
+theory Nat_Set
+imports Ordinal Function Monoid_Set
 
 begin
 
 text \<open>The basic results have already been shown for \<nat> = \<omega>.\<close>
-
 definition nat ("\<nat>") where "\<nat> = \<omega>"
 
 definition "nat_zero \<equiv> {}"
@@ -37,7 +36,7 @@ lemmas
   succ_not_empty [simp] = Ordinal.succ_not_empty[folded nat_zero_def] and
   empty_not_succ [simp] = Ordinal.empty_not_succ[folded nat_zero_def]
 
-lemma nat_one_in_nat [simp]: "1 \<in> \<nat>"
+lemma nat_one_in_nat [simp]: "1 \<in> nat"
   unfolding nat_one_def by auto
 
 lemma nat_zero_ne_one [simp]: "0 \<noteq> 1"
@@ -45,9 +44,9 @@ lemma nat_zero_ne_one [simp]: "0 \<noteq> 1"
 
 lemmas nat_one_ne_zero [simp] = nat_zero_ne_one[symmetric]
 
-section \<open>\<nat> as a type\<close>
+section \<open>nat as a type\<close>
 
-abbreviation "Nat \<equiv> Element \<nat>"
+abbreviation "Nat \<equiv> Element nat"
 
 lemmas Nat_induct = nat_induct[
   simplified Element_iff,
@@ -71,12 +70,12 @@ lemma one_type [type]: "1: Nat"
 
 section \<open>Truncated predecessor function\<close>
 
-definition "pred n = (if n = 0 then 0 else (THE m \<in> \<nat>. n = succ m))"
+definition "pred n = (if n = 0 then 0 else (THE m \<in> nat. n = succ m))"
 
 lemma pred_type [type]: "pred : Nat \<Rightarrow> Nat"
   unfolding pred_def by unfold_types (auto intro: btheI1 elim: nat_succ_if_ne_zeroE)
 
-lemma pred_nonzero: "\<lbrakk>n: Nat; n \<noteq> 0\<rbrakk> \<Longrightarrow> pred n = (THE m \<in> \<nat>. n = succ m)"
+lemma pred_nonzero: "\<lbrakk>n: Nat; n \<noteq> 0\<rbrakk> \<Longrightarrow> pred n = (THE m \<in> nat. n = succ m)"
   unfolding pred_def by auto
 
 lemma pred_zero [simp]: "pred 0 = 0"
@@ -289,9 +288,9 @@ lemma pred_lt_monotone [intro]:
       and "0 < m" "m < n"
   shows "pred m < pred n"
 proof -
-  have "m \<in> \<nat>" "n \<in> \<nat>" "m \<noteq> 0" "n \<noteq> 0"
+  have "m \<in> nat" "n \<in> nat" "m \<noteq> 0" "n \<noteq> 0"
     using assms by auto
-  then obtain k k' where "k \<in> \<nat>" "k'\<in> \<nat>" and
+  then obtain k k' where "k \<in> nat" "k'\<in> nat" and
     *: "m = succ k" "n = succ k'"
   using nat_obtain_succ_if_ne_zero[of m] nat_obtain_succ_if_ne_zero[of n] by blast
   then have "succ k < succ k'"
@@ -379,7 +378,7 @@ lemma pred_lt_if_le_if_zero_lt:
 
 section \<open>Ranges\<close>
 
-definition range ("{_.._}") where "{l..u} = {i \<in> \<nat> | l \<le> i \<and> i \<le> u}"
+definition range ("{_.._}") where "{l..u} = {i \<in> nat | l \<le> i \<and> i \<le> u}"
 
 lemma in_rangeI [intro]:
   assumes "n : Nat" "l \<le> n" "n \<le> u"
@@ -388,7 +387,7 @@ lemma in_rangeI [intro]:
 
 lemma succ_eq_range_zero: assumes "n : Nat" shows "succ n = {0..n}"
 proof -
-  have "{0..n} = {i \<in> \<nat> | i \<le> n}" unfolding range_def by simp
+  have "{0..n} = {i \<in> nat | i \<le> n}" unfolding range_def by simp
   then show ?thesis using assms
     unfolding succ_def range_def le_def lt_def nat_def
     by (intro equalityI) (auto dest: ElementD intro: omega_mem_transitive)
@@ -467,7 +466,7 @@ proof (rule type_intro)+
   fix x\<^sub>0 f n
   assume "x\<^sub>0 : Element A" "f : Nat \<Rightarrow> Element A \<Rightarrow> Element A" "n : Nat"
   have "(\<lambda>p. \<langle>succ (fst p), f (succ (fst p)) (snd p)\<rangle>)
-    : Element (\<nat> \<times> A) \<Rightarrow> Element (\<nat> \<times> A)" using [[type_derivation_depth=4]]
+    : Element (nat \<times> A) \<Rightarrow> Element (nat \<times> A)" using [[type_derivation_depth=4]]
     by discharge_types
   then show "natrec' n x\<^sub>0 f : Element A" unfolding natrec'_def using [[type_derivation_depth=4]]
     by discharge_types
@@ -948,45 +947,45 @@ corollary nat_le_imp_le_add_right:
 
 section \<open>Algebraic structures\<close>
 
-definition Nat_monoid ("'(\<nat>, +')")
-  where "(\<nat>, +) \<equiv> object {\<langle>@zero, 0\<rangle>, \<langle>@add, \<lambda>m n\<in> \<nat>. nat_add m n\<rangle>}"
+definition Nat_monoid ("'(nat, +')")
+  where "(nat, +) \<equiv> object {\<langle>@zero, 0\<rangle>, \<langle>@add, \<lambda>m n\<in> nat. nat_add m n\<rangle>}"
 
-lemma "(\<nat>, +): Monoid \<nat>"
+lemma "(nat, +): Monoid nat"
 proof (rule MonoidI)
-  show "(\<nat>, +): Zero \<nat>"
+  show "(nat, +): Zero nat"
     by (rule Zero_typeI) (simp add: Nat_monoid_def)
-  show "(\<nat>, +): Add \<nat>"
+  show "(nat, +): Add nat"
     by (rule Add_typeI) (unfold_types, auto simp: Nat_monoid_def)
 
-  fix x assume "x \<in> \<nat>"
-  show "add (\<nat>, +) (zero (\<nat>, +)) x = x"
-   and "add (\<nat>, +) x (zero (\<nat>, +)) = x"
+  fix x assume "x \<in> nat"
+  show "add (nat, +) (zero (nat, +)) x = x"
+   and "add (nat, +) x (zero (nat, +)) = x"
     \<comment> \<open>Very low-level; lots of unfolding.\<close>
     unfolding Nat_monoid_def add_def zero_def by auto
 
-  fix y z assume "y \<in> \<nat>" "z \<in> \<nat>"
-  show "add (\<nat>, +) (add (\<nat>, +) x y) z = add (\<nat>, +) x (add (\<nat>, +) y z)"
+  fix y z assume "y \<in> nat" "z \<in> nat"
+  show "add (nat, +) (add (nat, +) x y) z = add (nat, +) x (add (nat, +) y z)"
     unfolding Nat_monoid_def add_def zero_def
     using nat_add_assoc by auto
 qed
 
-definition Nat_mul_monoid ("'('\<nat>, \<cdot>')")
-  where "(\<nat>, \<cdot>) \<equiv> object {\<langle>@one, 1\<rangle>, \<langle>@mul, \<lambda>m n\<in> \<nat>. nat_mul m n\<rangle>}"
+definition Nat_mul_monoid ("'('nat, \<cdot>')")
+  where "(nat, \<cdot>) \<equiv> object {\<langle>@one, 1\<rangle>, \<langle>@mul, \<lambda>m n\<in> nat. nat_mul m n\<rangle>}"
 
-lemma "(\<nat>, \<cdot>): Mul_Monoid \<nat>"
+lemma "(nat, \<cdot>): Mul_Monoid nat"
 proof (rule Mul_MonoidI)
-  show "(\<nat>, \<cdot>): One \<nat>"
+  show "(nat, \<cdot>): One nat"
     by (rule One_typeI) (simp add: Nat_mul_monoid_def)
-  show "(\<nat>, \<cdot>): Mul \<nat>"
+  show "(nat, \<cdot>): Mul nat"
     by (rule Mul_typeI) (unfold_types, auto simp: Nat_mul_monoid_def)
 next
-  fix x assume "x \<in> \<nat>"
-  show "mul (\<nat>, \<cdot>) (one (\<nat>, \<cdot>)) x = x"
-   and "mul (\<nat>, \<cdot>) x (one (\<nat>, \<cdot>)) = x"
+  fix x assume "x \<in> nat"
+  show "mul (nat, \<cdot>) (one (nat, \<cdot>)) x = x"
+   and "mul (nat, \<cdot>) x (one (nat, \<cdot>)) = x"
   unfolding Nat_mul_monoid_def mul_def one_def by auto
 next
-  fix x y z assume "x \<in> \<nat>" "y \<in> \<nat>" "z \<in> \<nat>"
-  show "mul (\<nat>, \<cdot>) (mul (\<nat>, \<cdot>) x y) z = mul (\<nat>, \<cdot>) x (mul (\<nat>, \<cdot>) y z)"
+  fix x y z assume "x \<in> nat" "y \<in> nat" "z \<in> nat"
+  show "mul (nat, \<cdot>) (mul (nat, \<cdot>) x y) z = mul (nat, \<cdot>) x (mul (nat, \<cdot>) y z)"
     unfolding Nat_mul_monoid_def mul_def one_def
     using nat_mul_assoc by auto
 qed

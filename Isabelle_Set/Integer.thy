@@ -1,7 +1,7 @@
 chapter \<open>Integers\<close>
 
 theory Integer
-  imports Nat HOTG.Sum Set_Extension
+  imports Nat_Set HOTG.Sum Set_Extension
 begin
 
 section \<open>Carrier of \<int>\<close>
@@ -11,16 +11,16 @@ text \<open>
   By using the set extension principle, we ensure that \<open>\<nat> \<subseteq> \<int>\<close>.
 \<close>
 
-definition "int_rep = sum \<nat> (\<nat> \<setminus> {0})"
+definition "int_rep = sum nat (nat \<setminus> {0})"
 
 \<comment> \<open>Some type derivation rule setup\<close>
 lemma
-  [type]: "succ: Element \<nat> \<Rightarrow> Element (\<nat> \<setminus> {0})" and
-  [type]: "inl : Element \<nat> \<Rightarrow> Element int_rep" and
-  [type]: "inr : Element (\<nat> \<setminus> {0}) \<Rightarrow> Element int_rep"
+  [type]: "succ: Element nat \<Rightarrow> Element (nat \<setminus> {0})" and
+  [type]: "inl : Element nat \<Rightarrow> Element int_rep" and
+  [type]: "inr : Element (nat \<setminus> {0}) \<Rightarrow> Element int_rep"
   unfolding int_rep_def by unfold_types auto
 
-interpretation Int: set_extension \<nat> int_rep inl
+interpretation Int: set_extension nat int_rep inl
   proof (* FIX: What is the method called by `proof` here? *) qed auto
 
 abbreviation int ("\<int>") where "\<int> \<equiv> Int.def"
@@ -29,9 +29,9 @@ abbreviation "neg n \<equiv> Int.Abs (inr n)"
 
 lemmas nat_subset_int [simp] = Int.extension_subset
 
-abbreviation "Int \<equiv> Element \<int>"
+abbreviation "Int' \<equiv> Element \<int>"
 
-corollary [derive]: "n: Nat \<Longrightarrow> n: Int"
+corollary [derive]: "n : Nat \<Longrightarrow> n : Int'"
   by (unfold_types, rule subsetE) auto
 
 
@@ -147,10 +147,10 @@ definition "int_sub x y = Int.Abs (int_rep_sub (Int.Rep x) (Int.Rep y))"
 definition "int_mul x y \<equiv> Int.Abs (int_rep_mul (Int.Rep x) (Int.Rep y))"
 
 lemma
-  int_add_type [type]: "int_add: Int \<Rightarrow> Int \<Rightarrow> Int" and
-  int_neg_type [type]: "int_neg: Int \<Rightarrow> Int" and
-  int_sub_type [type]: "int_sub: Int \<Rightarrow> Int \<Rightarrow> Int" and
-  int_mul_type [type]: "int_mul: Int \<Rightarrow> Int \<Rightarrow> Int"
+  int_add_type [type]: "int_add: Int' \<Rightarrow> Int' \<Rightarrow> Int'" and
+  int_neg_type [type]: "int_neg: Int' \<Rightarrow> Int'" and
+  int_sub_type [type]: "int_sub: Int' \<Rightarrow> Int' \<Rightarrow> Int'" and
+  int_mul_type [type]: "int_mul: Int' \<Rightarrow> Int' \<Rightarrow> Int'"
   unfolding int_add_def int_neg_def int_sub_def int_mul_def
   using  [[type_derivation_depth=3]] \<comment> \<open>Need increased depth *EXAMPLE*\<close>
   by auto
@@ -180,21 +180,21 @@ unbundle
   notation_int_mul
 
 lemma int_one_mul [simp]:
-  assumes "x: Int" shows "1 \<cdot> x = x"
+  assumes "x: Int'" shows "1 \<cdot> x = x"
 proof -
   have "Int.Rep 1 = inl 1" unfolding Int.Rep_def by simp
   with int_rep_one_mul show ?thesis unfolding int_mul_def by simp
 qed
 
 lemma int_mul_one [simp]:
-  assumes "x: Int" shows "x \<cdot> 1 = x"
+  assumes "x: Int'" shows "x \<cdot> 1 = x"
 proof -
   have "Int.Rep 1 = inl 1" unfolding Int.Rep_def by simp
   with int_rep_mul_one show ?thesis unfolding int_mul_def by simp
 qed
 
 lemma int_mul_assoc:
-  assumes "x: Int" "y: Int" "z: Int"
+  assumes "x: Int'" "y: Int'" "z: Int'"
   shows "x \<cdot> y \<cdot> z = x \<cdot> (y \<cdot> z)"
   using assms int_rep_mul_assoc unfolding int_mul_def by simp
 
@@ -221,62 +221,5 @@ schematic_goal
   by (simp add: arith)
 
 end
-
-
-section \<open>Algebraic properties\<close>
-
-subsection \<open>Additive group structure\<close>
-
-definition Int_group ("'(\<int>, +')") where
-  "(\<int>, +) \<equiv> object {
-    \<langle>@zero, 0\<rangle>,
-    \<langle>@add, \<lambda>x y\<in> \<int>. int_add x y\<rangle>,
-    \<langle>@inv, \<lambda>x\<in> \<int>. int_neg x\<rangle>
-  }"
-
-text \<open>Again, the following should be automatically generated.\<close>
-
-lemma [simp]:
-  "(\<int>, +) @@ zero = 0"
-  "(\<int>, +) @@ add = \<lambda>x y\<in> \<int>. int_add x y"
-  "(\<int>, +) @@ inv = \<lambda>x\<in> \<int>. int_neg x"
-  unfolding Int_group_def by simp_all
-
-lemma Int_group: "(\<int>, +): Group \<int>"
-proof (intro GroupI)
-  show "(\<int>, +): Monoid \<int>"
-    apply (intro MonoidI)
-    apply (intro Zero_typeI, auto)
-    apply (intro Add_typeI, auto)
-    apply (auto simp: add_def zero_def)
-oops
-
-subsection \<open>Multiplicative monoid structure\<close>
-
-definition Int_mul_monoid ("'(\<int>, \<cdot>')") where
-  "(\<int>, \<cdot>) \<equiv> object {
-    \<langle>@one, 1\<rangle>,
-    \<langle>@mul, \<lambda>m n\<in> \<int>. int_mul m n\<rangle>
-  }"
-
-lemma "(\<int>, \<cdot>): Mul_Monoid \<int>"
-proof (intro Mul_MonoidI)
-  show "(\<int>, \<cdot>): One \<int>"
-    unfolding Int_mul_monoid_def by (intro One_typeI) simp
-next
-  show "(\<int>, \<cdot>) : Mul \<int>"
-    unfolding Int_mul_monoid_def by (intro Mul_typeI) simp
-next
-  fix x assume "x \<in> \<int>"
-  show "mul Int_mul_monoid (one Int_mul_monoid) x = x" and
-    "mul Int_mul_monoid x (one Int_mul_monoid) = x"
-    unfolding Int_mul_monoid_def mul_def one_def by auto
-next
-  fix x y z assume "x \<in> \<int>" "y \<in> \<int>" "z \<in> \<int>"
-  show "mul Int_mul_monoid (mul Int_mul_monoid x y) z =
-    mul Int_mul_monoid x (mul Int_mul_monoid y z)"
-    using int_mul_assoc unfolding Int_mul_monoid_def mul_def one_def by auto
-qed
-
 
 end

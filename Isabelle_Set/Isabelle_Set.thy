@@ -4,13 +4,13 @@ imports
   Function
   Monops
   Ordinal
-  String
-  Object
-  Structures
-  Monoid
+  String_Set
+  Object_Set
+  Structures_Set
+  Monoid_Set
   Ring
   Set_Extension
-  Nat
+  Nat_Set
   Integer
   (* Category *)
 
