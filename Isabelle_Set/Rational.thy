@@ -94,6 +94,9 @@ lemma rat_rep_mul_inv:
   "x \<in> rat_rep \<Longrightarrow> y \<in> rat_rep \<Longrightarrow> y \<noteq> rat_rep_zero \<Longrightarrow> rat_rep_div (rat_rep_mul x y) y = x"
   sorry
 
+lemma rat_rep_add_comm: "x \<in> rat_rep \<Longrightarrow> y \<in> rat_rep \<Longrightarrow> rat_rep_add x y = rat_rep_add y x"
+  sorry
+
 definition "rat_add x y = Rat.Abs (rat_rep_add (Rat.Rep x) (Rat.Rep y))"
 definition "rat_sub x y = Rat.Abs (rat_rep_sub (Rat.Rep x) (Rat.Rep y))"
 definition "rat_mul x y = Rat.Abs (rat_rep_mul (Rat.Rep x) (Rat.Rep y))"
@@ -180,6 +183,10 @@ definition "Type_Rel B B' \<equiv> (\<exists>A f. set_extension A B f \<and> B' 
 
 definition "Rat_Type_Rel B B' \<equiv> B = rat_rep \<and> B' = Rat"
 
+lemma "Rat_Type_Rel A B \<Longrightarrow> Type_Rel A B"
+  using Rat.set_extension_axioms Rat_Type_Rel_def Type_Rel_def
+  by auto
+
 lemma "Type_Rel rat_rep Rat"
   unfolding Type_Rel_def
   using Rat.set_extension_axioms by blast
@@ -217,6 +224,17 @@ proof -
     apply transfer
     using rat_rep_mul_inv by simp
   thus ?thesis using assms ElementD by blast
+qed
+
+lemma rat_add_comm:
+  assumes "x: Rat" "y: Rat"
+  shows "rat_add x y = rat_add y x"
+proof-
+  have "ball rat (\<lambda>x. ball rat (\<lambda> y. rat_add x y = rat_add y x))"
+    apply transfer
+    by (simp add: rat_rep_add_comm)
+  thus ?thesis using assms
+    using ElementD by blast
 qed
 
 end

@@ -71,24 +71,46 @@ corollary [derive]: "x : Rat \<Longrightarrow> x : Poly_Rat"
 
 definition "poly_rat_rep_add p q = (\<lambda>n\<in>\<nat>. p`n + q`n)"
 
+definition "poly_rat_rep_neg p = (\<lambda>n\<in>\<nat>. 0 - (p`n))"
+
 definition "poly_rat_rep_coeffs p = rng p"
+
+definition "poly_rat_rep_zero = (\<lambda>n\<in>\<nat>. 0)"
+
+lemma poly_rat_rep_zero_type: "poly_rat_rep_zero \<in> poly_rat_rep"
+  unfolding poly_rat_rep_zero_def poly_rat_rep_def
+  by (simp add: ElementD ElementI Rat_Rel_0 function'_type lambda_function_typeI)
+
+lemma poly_rat_rep_add_type: "p \<in> poly_rat_rep \<Longrightarrow> q \<in> poly_rat_rep \<Longrightarrow> poly_rat_rep_add p q \<in> poly_rat_rep"
+  sorry
 
 lemma "p \<in> poly_rat_rep \<Longrightarrow> q \<in> poly_rat_rep \<Longrightarrow> poly_rat_rep_add p q \<in> poly_rat_rep"
   unfolding poly_rat_rep_def poly_rat_rep_add_def
   using lambda_function_typeI' rat_add_type eval_type function'_type
   sorry
 
-definition "poly_rat_rep_zero = (\<lambda>n\<in>\<nat>. 0)"
-
 lemma poly_rat_zero_add_rep: "p \<in> poly_rat_rep \<Longrightarrow> poly_rat_rep_add poly_rat_rep_zero p = p"
   unfolding poly_rat_rep_zero_def poly_rat_rep_add_def poly_rat_rep_def
   sorry
 
+lemma poly_rat_rep_add_comm: "p \<in> poly_rat_rep \<Longrightarrow> q \<in> poly_rat_rep \<Longrightarrow> poly_rat_rep_add p q = poly_rat_rep_add q p"
+  unfolding poly_rat_rep_add_def poly_rat_rep_def
+  using rat_add_comm
+  sorry
+
+lemma poly_rat_rep_add_neg: "p \<in> poly_rat_rep \<Longrightarrow> poly_rat_rep_add p (poly_rat_rep_neg p) = poly_rat_rep_zero"
+  sorry
+
 definition "poly_rat_add p q = Poly_Rat.Abs (poly_rat_rep_add (Poly_Rat.Rep p) (Poly_Rat.Rep q))"
+
+definition "poly_rat_neg p = Poly_Rat.Abs (poly_rat_rep_neg (Poly_Rat.Rep p))"
 
 definition "poly_rat_coeffs p = poly_rat_rep_coeffs (Poly_Rat.Rep p)"
 
 lemma poly_rat_add_type [type]: "poly_rat_add: Poly_Rat \<Rightarrow> Poly_Rat \<Rightarrow> Poly_Rat"
+  sorry
+
+lemma poly_rat_neg_type [type]: "poly_rat_neg: Poly_Rat \<Rightarrow> Poly_Rat"
   sorry
 
 bundle notation_poly_rat_add begin notation poly_rat_add (infixl "+" 65) end
@@ -125,6 +147,11 @@ lemma Poly_Rel_add [transfer_rule]: "(Poly_Rat_Rel ===> Poly_Rat_Rel ===> Poly_R
   using poly_rat_add_def Poly_Rat.Abs_inverse poly_rat_add_type
   sorry
 
+lemma Poly_Rel_neg [transfer_rule]: "(Poly_Rat_Rel ===> Poly_Rat_Rel) poly_rat_rep_neg poly_rat_neg"
+  unfolding  rel_fun_def Poly_Rat_Rel_def
+  using poly_rat_neg_def Poly_Rat.Abs_inverse poly_rat_neg_type Element_iff Pi_typeE
+  by metis
+
 lemma Poly_Rel_All [transfer_rule]:
   "((Poly_Rat_Rel ===> (=)) ===> (=)) (ball poly_rat_rep) (ball poly_rat)"
   unfolding rel_fun_def Poly_Rat_Rel_def
@@ -133,6 +160,28 @@ lemma Poly_Rel_All [transfer_rule]:
 lemma "\<forall>p\<in>poly_rat. 0 + p = p"
   apply transfer
   by (simp add: poly_rat_zero_add_rep)
+
+lemma poly_rat_add_comm: "\<forall>p\<in>poly_rat. \<forall>q\<in>poly_rat. poly_rat_add p q = poly_rat_add q p"
+  apply transfer
+  by (simp add: poly_rat_rep_add_comm)
+
+lemma poly_rat_add_neg: "\<forall>p\<in>poly_rat. poly_rat_add p (poly_rat_neg p) = 0"
+  apply transfer
+  by (simp add: poly_rat_rep_add_neg)
+
+lemma "\<forall>p\<in>poly_rat. p + 0 = p"
+  apply transfer
+  using poly_rat_zero_add_rep poly_rat_rep_add_comm poly_rat_rep_zero_type
+  by simp
+
+lemma "\<forall>p\<in>poly_rat. p + (p + (poly_rat_neg p)) = p"
+  apply transfer
+  using poly_rat_rep_add_neg poly_rat_zero_add_rep poly_rat_rep_add_comm poly_rat_rep_add_type poly_rat_rep_zero_type
+  by simp
+
+lemma "\<forall>p\<in>poly_rat. \<forall>q\<in>poly_rat. p = q \<longrightarrow> poly_rat_add p (poly_rat_neg q) = 0"
+  apply transfer
+  using poly_rat_rep_add_neg by force
 
 definition "Poly_Int = (\<lambda>p. poly_rat_coeffs p \<subseteq> \<int>) \<sqdot> Poly_Rat"
 
