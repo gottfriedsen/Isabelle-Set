@@ -170,12 +170,16 @@ lemma List_Rel_eq [transfer_rule]: "(List_Rel A ===> List_Rel A ===> (=)) (=) (=
   unfolding rel_fun_def List_Rel_def
   using List.Rep_inverse by fastforce
 
-lemma List_Rel_All [transfer_rule]: "((List_Rel A ===> (=)) ===> (=)) All All"
-  unfolding rel_fun_def List_Rel_def
+lemma List_ball [transfer_rule]: "((Eq A ===> (=)) ===> (=)) (ball A) (ball A)"
+  unfolding rel_fun_def List_Rel_def Eq_def
+  by blast
+
+lemma List_ball' [transfer_rule]: "((List_Rel A ===> (=)) ===> (=)) (ball (List_rep A)) (ball (list A))"
+  unfolding rel_fun_def List_Rel_def List_Rel_def
   sorry
 
-lemma Nil_neq_Cons: "Nil A \<noteq> Cons A x xs"
-  apply transfer_start
-  oops
+lemma Nil_neq_Cons: "ball A (\<lambda>x. ball (list A) (\<lambda>xs. Nil A \<noteq> Cons A x xs))"
+  apply (transfer fixing: A)
+  by simp
 
 end
