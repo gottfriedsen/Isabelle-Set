@@ -264,34 +264,24 @@ lemma atomize_imp: "(A \<Longrightarrow> B) \<equiv> Trueprop (A \<longrightarro
 lemma atomize_imp_sym: "Trueprop (A \<longrightarrow> B) \<equiv> (A \<Longrightarrow> B)"
   by presburger
 
-lemma atomize_not: "(A \<Longrightarrow> False) \<equiv> Trueprop (\<not> A)"
-  by presburger
-
 lemma atomize_eq: "(x \<equiv> y) \<equiv> Trueprop (x = y)"
   by presburger
 
 lemma atomize_eq_sym: "Trueprop (x = y) \<equiv> (x \<equiv> y)"
   by presburger
 
-lemma atomize_conj: "(A &&& B) \<equiv> Trueprop (A \<and> B)"
-  by presburger
+method atomize' =
+  (unfold atomize_imp atomize_all atomize_eq)
 
-method_setup atomize' =
-  \<open>Attrib.thms >> (fn thms => fn ctxt =>
-    SIMPLE_METHOD
-      (FIRSTGOAL (rewrite_goal_tac
-        (put_simpset HOL_basic_ss ctxt addsimps thms) @{thms atomize_imp atomize_all atomize_eq})))\<close>
-  "rewirte subgoal by given rules"
-
-method_setup atomize_rev' =
-  \<open>Attrib.thms >> (fn thms => fn ctxt =>
-    SIMPLE_METHOD
-      (FIRSTGOAL (rewrite_goal_tac
-        (put_simpset HOL_basic_ss ctxt addsimps thms) @{thms atomize_eq_sym atomize_all_sym atomize_imp_sym})))\<close>
-  "rewirte subgoal by given rules"
+method atomize_rev' =
+  (unfold atomize_eq_sym atomize_all_sym atomize_imp_sym)
 
 method atomize_transfer =
   (atomize', transfer, atomize_rev')
+
+lemma "\<And>x y. x: Rat \<Longrightarrow> y: Rat \<Longrightarrow> y \<noteq> 0 \<Longrightarrow> rat_div (x \<cdot> y) y \<equiv> x"
+  apply atomize_transfer
+  sorry
 
 lemma conjE1: "(A \<and> B \<Longrightarrow> A)"
   by blast
@@ -366,10 +356,6 @@ lemma Rat_Rel_add': "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add rat_add"
    apply (erule conjE2)+
    apply (erule subst')+
    apply (rule refl)
-  sorry
-
-lemma "\<And>x y. x: Rat \<Longrightarrow> y: Rat \<Longrightarrow> y \<noteq> 0 \<Longrightarrow> rat_div (x \<cdot> y) y \<equiv> x"
-  apply atomize_transfer
   sorry
 
 
