@@ -65,6 +65,10 @@ $$
 
 ### Set Specific Problems for Transfer
 
-* translation between set-membership and types (solved, for example: see section above)
-* translation of polymorphic constants (solved, for example: see section above)
+* translation between set-membership and types
+  * Problem: The premises of a theorem to be transfered often contain type constraints of the form `x : A`. In most other settings, type constraints are handled implicitly and are transfered to new type constraints. Here however, we want to transfer statements about type inhabitation to statements about set membership.
+  * Solution: We define a further transfer relation which relates types and sets (if the type is not parameterized, only a single type is related to a single set). With this relation at hand, we can prove two transfer rule: One rule to transfer a type to a set and one to transfer the has-type operator `:`  to the set membership operator `∈`. (see `Rational.thy`)
+* translation of polymorphic constants
+  * Problem: When the sets involved in a set-extension are parameterized by some set, all definitions made by the set-extension are parameterized as well (see example from `List_Set.thy` in the section above). Since constants in the representation-level are not parametrized, this leads to differences in the term structures between terms related by the transfer relation.
+  * Solution: This problem can be solved by using the `fixing` option of transfer. (e.g. `apply (transfer fixing: A)`)
 
