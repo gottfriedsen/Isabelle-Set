@@ -63,6 +63,15 @@ $$
 \forall x, xs\ldotp \mathsf{Nil}\; \alpha \neq \mathsf{Cons}\; \alpha\; x\; xs
 $$
 
+* Dependent transfer rules:
+
+  * in `Tranfer_Test.thy`:
+
+    * The naive transfer relation below is not provable since `int_div i j` is only defined if `i` is a multiple of `j`:
+      $$
+      (\mathsf{Int\_Rel} \Longrightarrow \mathsf{Int\_Rel} \Longrightarrow \mathsf{Int\_Rel})\; \mathsf{int\_rep\_div}\; \mathsf{int\_div}
+      $$
+
 ### Set Specific Problems for Transfer
 
 * translation between set-membership and types
@@ -71,4 +80,3 @@ $$
 * translation of polymorphic constants
   * Problem: When the sets involved in a set-extension are parameterized by some set, all definitions made by the set-extension are parameterized as well (see example from `List_Set.thy` in the section above). Since constants in the representation-level are not parametrized, this leads to differences in the term structures between terms related by the transfer relation.
   * Solution: This problem can be solved by using the `fixing` option of transfer. (e.g. `apply (transfer fixing: A)`)
-

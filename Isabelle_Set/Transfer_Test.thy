@@ -21,6 +21,43 @@ hide_const fst snd
 hide_const Nat nat
 notation rel_fun  (infixr "===>" 55)
 
+lemma int_rep_mul_inj_1:
+  assumes assms: "i \<in> int_rep" "i' \<in> int_rep" "j \<in> int_rep \<setminus> {inl 0}"
+    "int_rep_mul i j = int_rep_mul i' j"
+  shows "i = i'"
+  sorry
+
+lemma int_rep_mul_inj_2:
+  assumes assms: "i \<in> int_rep" "i' \<in> int_rep" "j \<in> int_rep \<setminus> {inl 0}"
+    "int_rep_mul j i = int_rep_mul j i'"
+  shows "i = i'"
+  sorry
+
+definition "int_rep_div i j \<equiv> (THE k. k \<in> int_rep \<and> int_rep_mul j k = i)"
+
+lemma
+  assumes i: "i \<in> int_rep"
+    and j: "j \<in> (int_rep \<setminus> {inl 0})"
+    and exists_k: "\<exists>k\<in>int_rep. i = int_rep_mul j k"
+  shows "int_rep_div i j \<in> int_rep"
+proof -
+  let ?k = "(THE k. k \<in> int_rep \<and> int_rep_mul j k = i)"
+  obtain k where k: "k \<in> int_rep \<and> int_rep_mul j k = i"
+    using exists_k by blast
+  have k_in_int_rep: "?k \<in> int_rep"
+    using k int_rep_mul_inj_2[of k _ j] theI[of _ k]
+    by (smt (verit, ccfv_threshold) j)
+  show ?thesis
+    unfolding int_rep_div_def
+    using k_in_int_rep .
+qed
+
+definition "int_div i j \<equiv> Int.Abs (int_rep_div (Int.Rep i) (Int.Rep j))"
+
+lemma int_div_type: "int_div: Int' \<Rightarrow> Int' \<Rightarrow> Int'"
+  unfolding int_div_def
+  using  [[type_derivation_depth=3]] \<comment> \<open>Need increased depth *EXAMPLE*\<close>
+  oops
 
 (* transfer relation *)
 definition "Int_Rel i_rep i \<equiv> i \<in> Int.def \<and> Int.Rep i = i_rep"
@@ -53,6 +90,11 @@ lemma Int_Rel_mul [transfer_rule]: "(Int_Rel ===> Int_Rel ===> Int_Rel) int_rep_
   using int_mul_def Int.Abs_inverse int_mul_type
   by (metis (no_types, lifting) ElementD ElementI Pi_typeE)
 
+lemma Int_Rel_div [transfer_rule]: "(Int_Rel ===> Int_Rel ===> Int_Rel) int_rep_div int_div"
+  unfolding  rel_fun_def Int_Rel_def
+  using int_div_def Int.Abs_inverse
+  oops
+
 lemma Int_Rel_All [transfer_rule]:
   "((Int_Rel ===> (=)) ===> (=)) (ball int_rep) (ball \<int>)"
   unfolding rel_fun_def Int_Rel_def
@@ -64,6 +106,11 @@ lemma
   shows "0 + 0 = 0"
   apply transfer
   using assms .
+
+lemma
+  "ball \<int> (\<lambda>i. ball \<int> (\<lambda>j. int_div (int_mul i j) j = i))"
+  apply transfer
+  oops
 
 (* Can't hide notation for bounded universal quantifier from HOL.Set *)
 lemma
