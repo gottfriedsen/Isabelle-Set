@@ -62,6 +62,8 @@ qed
 abbreviation "poly_rat \<equiv> Poly_Rat.def"
 abbreviation "Poly_Rat \<equiv> Element poly_rat"
 
+term "type_definition Poly_Rat.Rep Poly_Rat.Abs poly_rat_rep"
+
 lemmas rat_subset_poly_rat [simp] = Poly_Rat.extension_subset
 
 corollary [derive]: "x : Rat \<Longrightarrow> x : Poly_Rat"
@@ -212,5 +214,29 @@ qed
 
 lemma "(\<And>p. p : Poly_Int \<Longrightarrow> P p) \<Longrightarrow> i : Int' \<Longrightarrow> P i"
   using Int_is_Poly_Int by blast
+
+
+
+lemma "(Poly_Rat_Rel ===> Poly_Rat_Rel ===> Poly_Rat_Rel) poly_rat_rep_add poly_rat_add"
+  unfolding  rel_fun_def Poly_Rat_Rel_def
+  apply atomize_rev'
+  apply (rule conjI)
+    (* drop non-relevant part of premises *)
+   apply (drule conjE1)+
+  unfolding poly_rat_add_def
+    (* make goal more readable *)
+   apply(rule Fun_typeE[OF _ Poly_Rat.Abs_type])
+   apply (rule l1[OF _ Rep_surj[OF Poly_Rat.set_extension_axioms]], assumption)
+   apply (rule l1[OF _ Rep_surj[OF Poly_Rat.set_extension_axioms]], assumption)
+    (* clean up premises *)
+   apply (erule HOL.cnf.weakening_thm)
+   apply (erule HOL.cnf.weakening_thm)
+   defer
+    (* prove second goal *)
+  unfolding Poly_Rat.Abs_inverse
+   apply (erule conjE2)+
+   apply (erule subst')+
+   apply (rule refl)
+  sorry
 
 end
