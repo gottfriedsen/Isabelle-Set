@@ -121,9 +121,9 @@ bundle notation_rat_sub begin notation rat_sub (infixl "-" 65) end
 bundle no_notation_rat_sub begin no_notation rat_sub (infixl "-" 65) end
 
 bundle notation_rat_mul begin notation rat_mul (infixl "\<cdot>" 65) end
-bundle no_notation_rat_div begin no_notation rat_div (infixl "/" 65) end
+bundle no_notation_rat_div begin no_notation rat_div (infixl "'/" 65) end
 
-bundle notation_rat_div begin notation rat_div (infixl "/" 65) end
+bundle notation_rat_div begin notation rat_div (infixl "'/" 65) end
 bundle no_notation_rat_mul begin no_notation rat_mul (infixl "\<cdot>" 65) end
 
 unbundle
@@ -137,6 +137,31 @@ unbundle
   notation_rat_div
 
 definition "Rat_Rel p_rep p \<equiv> p \<in> Rat.def \<and> Rat.Rep p = p_rep"
+
+(* This should be automated by lifting *)
+
+method_setup unfold =
+  \<open>Attrib.thms >> (fn thms => fn ctxt =>
+    SIMPLE_METHOD (FIRSTGOAL (rewrite_goal_tac ctxt thms)))\<close>
+
+method prove_rel_rep uses rel_def rep_def =
+  (unfold rel_def rep_def, rule conjI, assumption, rule refl)
+
+method prove_rel_inj uses rel_def =
+  (unfold rel_def, unfold_types)
+
+method prove_rel_abs uses rel_def rep_inv =
+  (unfold rel_def, erule conjE, erule HOL.subst, erule rep_inv)
+
+lemma Rat_Rel_Rep: "a \<in> Rat.def \<Longrightarrow> Rat_Rel (Rat.Rep a) a"
+  by (prove_rel_rep rel_def: Rat_Rel_def rep_def: Rat.Rep_def)
+
+lemma Rat_Rel_inj: "Rat_Rel a b \<Longrightarrow> Rat_Rel a' b \<Longrightarrow> a = a'"
+  by (prove_rel_inj rel_def: Rat_Rel_def)
+
+lemma Rat_Rel_Abs: "Rat_Rel a b \<Longrightarrow> Rat.Abs a = b"
+  by (prove_rel_abs rel_def: Rat_Rel_def rep_inv: Rat.Rep_inverse)
+
 
 lemma Rat_Rel_0 [transfer_rule]: "Rat_Rel rat_rep_zero 0"
   unfolding Rat.Rep_def Rat_Rel_def Rat.def_def rat_rep_zero_def
@@ -157,6 +182,7 @@ lemma Rat_Rel_neq [transfer_rule]: "(Rat_Rel ===> Rat_Rel ===> (=)) (\<noteq>) (
 lemma Rat_Rel_add [transfer_rule]: "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add rat_add"
   unfolding  rel_fun_def Rat_Rel_def
   using rat_add_def Rat.Abs_inverse rat_add_type
+  using ElementD ElementI Pi_typeE
   by (metis (no_types, lifting) ElementD ElementI Pi_typeE)
 
 lemma Rat_Rel_mul [transfer_rule]: "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_mul rat_mul"
@@ -225,6 +251,53 @@ proof -
     using rat_rep_mul_inv by simp
   thus ?thesis using assms ElementD by blast
 qed
+
+lemma atomize_all: "(\<And>x. P x) \<equiv> Trueprop (\<forall>x. P x)"
+  by presburger
+
+lemma atomize_all_sym: "Trueprop (\<forall>x. P x) \<equiv> (\<And>x. P x)"
+  by presburger
+
+lemma atomize_imp: "(A \<Longrightarrow> B) \<equiv> Trueprop (A \<longrightarrow> B)"
+  by presburger
+
+lemma atomize_imp_sym: "Trueprop (A \<longrightarrow> B) \<equiv> (A \<Longrightarrow> B)"
+  by presburger
+
+lemma atomize_not: "(A \<Longrightarrow> False) \<equiv> Trueprop (\<not> A)"
+  by presburger
+
+lemma atomize_eq: "(x \<equiv> y) \<equiv> Trueprop (x = y)"
+  by presburger
+
+lemma atomize_eq_sym: "Trueprop (x = y) \<equiv> (x \<equiv> y)"
+  by presburger
+
+lemma atomize_conj: "(A &&& B) \<equiv> Trueprop (A \<and> B)"
+  by presburger
+
+method_setup atomize' =
+  \<open>Attrib.thms >> (fn thms => fn ctxt =>
+    SIMPLE_METHOD
+      (FIRSTGOAL (rewrite_goal_tac
+        (put_simpset HOL_basic_ss ctxt addsimps thms) @{thms atomize_imp atomize_all atomize_eq})))\<close>
+  "rewirte subgoal by given rules"
+
+method_setup atomize_rev' =
+  \<open>Attrib.thms >> (fn thms => fn ctxt =>
+    SIMPLE_METHOD
+      (FIRSTGOAL (rewrite_goal_tac
+        (put_simpset HOL_basic_ss ctxt addsimps thms) @{thms atomize_eq_sym atomize_all_sym atomize_imp_sym})))\<close>
+  "rewirte subgoal by given rules"
+
+method atomize_transfer =
+  (atomize', transfer, atomize_rev')
+
+
+lemma "\<And>x y. x: Rat \<Longrightarrow> y: Rat \<Longrightarrow> y \<noteq> 0 \<Longrightarrow> rat_div (x \<cdot> y) y \<equiv> x"
+  apply atomize_transfer
+  sorry
+
 
 lemma rat_add_comm:
   assumes "x: Rat" "y: Rat"
