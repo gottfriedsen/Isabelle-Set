@@ -21,6 +21,11 @@ hide_const fst snd
 hide_const Nat nat
 notation rel_fun  (infixr "===>" 55)
 
+definition "nat_leq m n \<equiv> nat_sub m n = 0"
+definition "nat_lt m n \<equiv> nat_leq m n \<and> m \<noteq> n"
+definition "nat_geq m n \<equiv> nat_leq n m"
+definition "nat_gt m n \<equiv> nat_leq m n"
+
 lemma int_rep_mul_inj_1:
   assumes assms: "i \<in> int_rep" "i' \<in> int_rep" "j \<in> int_rep \<setminus> {inl 0}"
     "int_rep_mul i j = int_rep_mul i' j"
@@ -54,10 +59,23 @@ qed
 
 definition "int_div i j \<equiv> Int.Abs (int_rep_div (Int.Rep i) (Int.Rep j))"
 
-lemma int_div_type: "int_div: Int' \<Rightarrow> Int' \<Rightarrow> Int'"
+definition "divides_rep i j \<equiv> (\<exists>k. int_rep_mul k j = i)"
+
+definition "divides i j \<equiv> divides_rep (Int.Rep i) (Int.Rep j)"
+
+lemma int_rep_div_type [type]: "int_rep_div: (i : Int') \<Rightarrow> (divides_rep i \<sqdot> Int') \<Rightarrow> Int'"
+  apply unfold_types
+  unfolding int_rep_div_def  
+  sorry
+
+lemma int_div_type [type]: "int_div: (i : Int') \<Rightarrow> (divides i \<sqdot> Int') \<Rightarrow> Int'"
+  apply unfold_types
   unfolding int_div_def
-  using  [[type_derivation_depth=3]] \<comment> \<open>Need increased depth *EXAMPLE*\<close>
-  oops
+  using int_rep_div_type
+  sorry
+
+definition "int_rep_pow n i \<equiv> natrec (inl 0) (int_rep_mul i) n"
+definition "int_pow n i \<equiv> Int.Abs (int_rep_pow n (Int.Rep i))"
 
 (* transfer relation *)
 definition "Int_Rel i_rep i \<equiv> i \<in> Int.def \<and> Int.Rep i = i_rep"
@@ -95,6 +113,19 @@ lemma Int_Rel_div [transfer_rule]: "(Int_Rel ===> Int_Rel ===> Int_Rel) int_rep_
   using int_div_def Int.Abs_inverse
   oops
 
+lemma divides_mul_rep: "divides_rep (int_rep_mul i j) j"
+  unfolding divides_rep_def by blast
+
+lemma Int_Rel_mul': "Int_Rel i i' \<Longrightarrow> Int_Rel j j' \<Longrightarrow> Int_Rel (int_rep_mul i j) (int_mul i' j')"
+  unfolding  rel_fun_def Int_Rel_def
+  using int_mul_def Int.Abs_inverse int_mul_type
+  sorry
+
+lemma Int_Rel_div [transfer_rule]: "Int_Rel i i' \<Longrightarrow> Int_Rel j j' \<Longrightarrow> divides_rep i j \<Longrightarrow> Int_Rel (int_rep_div i j) (int_div i' j')"
+  unfolding  rel_fun_def Int_Rel_def divides_rep_def
+  using int_div_def Int.Abs_inverse int_rep_div_type int_div_type
+  sorry
+
 lemma Int_Rel_All [transfer_rule]:
   "((Int_Rel ===> (=)) ===> (=)) (ball int_rep) (ball \<int>)"
   unfolding rel_fun_def Int_Rel_def
@@ -108,8 +139,10 @@ lemma
   using assms .
 
 lemma
-  "ball \<int> (\<lambda>i. ball \<int> (\<lambda>j. int_div (int_mul i j) j = i))"
-  apply transfer
+  assumes "\<And>i j. i \<in> int_rep \<Longrightarrow> j \<in> int_rep \<Longrightarrow> int_rep_div (int_rep_mul i j) j = i"
+  shows "ball \<int> (\<lambda>i. ball \<int> (\<lambda>j. int_div (int_mul i j) j = i))"
+  apply transfer_start
+  apply transfer_step
   oops
 
 (* Can't hide notation for bounded universal quantifier from HOL.Set *)
