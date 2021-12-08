@@ -80,3 +80,30 @@ $$
 * translation of polymorphic constants
   * Problem: When the sets involved in a set-extension are parameterized by some set, all definitions made by the set-extension are parameterized as well (see example from `List_Set.thy` in the section above). Since constants in the representation-level are not parametrized, this leads to differences in the term structures between terms related by the transfer relation.
   * Solution: This problem can be solved by using the `fixing` option of transfer. (e.g. `apply (transfer fixing: A)`)
+
+### Problems for Lifting
+
+* Automatically coming up and proving dependent type theorems from first-order transfer rules is not straight forward, because the structure of both theorems doesn't match.
+
+  * Example of first-order transfer rule:
+    $$
+    \mathsf{Int\_Rel}\ i\ i' \Longrightarrow \mathsf{Int\_Rel}\ j\ j' \Longrightarrow \mathsf{divides}\ i'\ j' \Longrightarrow \mathsf{Int\_Rel}\ (\mathsf{int\_rep\_div\ i\ j})\ (\mathsf{int\_div\ i'\ j'})
+    $$
+
+  * Example of dependent type theorem
+    $$
+    \mathsf{int\_div} : (i : \mathsf{Int}) \Rightarrow (\mathsf{divides}\ i \boldsymbol{\cdot} \mathsf{Int}) \Rightarrow \mathsf{Int}
+    $$
+
+  * In the transfer rule, the divisibility constraint is given as a separate premise while in the type theorem, it is part of second parameter type
+
+  * Hence, it seems worth investigating, whether an alternative approach to first-order transfer rules should be used. Reusing the notation for types results in
+    $$
+    \mathsf{Int\_Rel}\ i\ i' \rightarrow (\mathsf{const} \circ \mathsf{divides}\ i \boldsymbol{\cdot} \mathsf{Int\_Rel}) \rightarrow \mathsf{Int\_Rel}
+    $$
+
+  * A structurally similar syntax which is closer to the notation of first-order rules is
+    $$
+    \mathsf{Int\_Rel}\ i\ i' \rightarrow (\mathsf{Int\_Rel}\ j\ j' \mid \mathsf{divides}\ i\ j)\rightarrow \mathsf{Int\_Rel}
+    $$
+
