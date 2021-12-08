@@ -138,31 +138,6 @@ unbundle
 
 definition "Rat_Rel p_rep p \<equiv> p \<in> Rat.def \<and> Rat.Rep p = p_rep"
 
-(* This should be automated by lifting *)
-
-method_setup unfold =
-  \<open>Attrib.thms >> (fn thms => fn ctxt =>
-    SIMPLE_METHOD (FIRSTGOAL (rewrite_goal_tac ctxt thms)))\<close>
-
-method prove_rel_rep uses rel_def rep_def =
-  (unfold rel_def rep_def, rule conjI, assumption, rule refl)
-
-method prove_rel_inj uses rel_def =
-  (unfold rel_def, unfold_types)
-
-method prove_rel_abs uses rel_def rep_inv =
-  (unfold rel_def, erule conjE, erule HOL.subst, erule rep_inv)
-
-lemma Rat_Rel_Rep: "a \<in> Rat.def \<Longrightarrow> Rat_Rel (Rat.Rep a) a"
-  by (prove_rel_rep rel_def: Rat_Rel_def rep_def: Rat.Rep_def)
-
-lemma Rat_Rel_inj: "Rat_Rel a b \<Longrightarrow> Rat_Rel a' b \<Longrightarrow> a = a'"
-  by (prove_rel_inj rel_def: Rat_Rel_def)
-
-lemma Rat_Rel_Abs: "Rat_Rel a b \<Longrightarrow> Rat.Abs a = b"
-  by (prove_rel_abs rel_def: Rat_Rel_def rep_inv: Rat.Rep_inverse)
-
-
 lemma Rat_Rel_0 [transfer_rule]: "Rat_Rel rat_rep_zero 0"
   unfolding Rat.Rep_def Rat_Rel_def Rat.def_def rat_rep_zero_def
   sorry
@@ -256,7 +231,7 @@ lemma atomize_all: "(\<And>x. P x) \<equiv> Trueprop (\<forall>x. P x)"
   by presburger
 
 lemma atomize_all_sym: "Trueprop (\<forall>x. P x) \<equiv> (\<And>x. P x)"
-  by presburger
+  by (fact atomize_all[symmetric])
 
 lemma atomize_imp: "(A \<Longrightarrow> B) \<equiv> Trueprop (A \<longrightarrow> B)"
   by presburger
@@ -274,89 +249,12 @@ method atomize' =
   (unfold atomize_imp atomize_all atomize_eq)
 
 method atomize_rev' =
-  (unfold atomize_eq_sym atomize_all_sym atomize_imp_sym)
+  (unfold atomize_all_sym atomize_imp_sym)
 
 method atomize_transfer =
   (atomize', transfer, atomize_rev')
 
-lemma "\<And>x y. x: Rat \<Longrightarrow> y: Rat \<Longrightarrow> y \<noteq> 0 \<Longrightarrow> rat_div (x \<cdot> y) y \<equiv> x"
-  apply atomize_transfer
-  sorry
 
-lemma conjE1: "(A \<and> B \<Longrightarrow> A)"
-  by blast
-
-lemma conjE2: "A \<and> B \<Longrightarrow> (B \<Longrightarrow> P) \<Longrightarrow> P"
-  by blast
-
-lemma Fun_typeE: "x \<in> A \<Longrightarrow> f : Element A \<Rightarrow> Element B \<Longrightarrow> f x \<in> B"
-  by unfold_types
-
-definition "surj' A B f \<equiv> ({f x | x \<in> A} = B)"
-
-lemma Rep_surj:
-  assumes set_ext: "set_extension A B f"
-  shows "surj' (set_extension.def A B f) B (set_extension.Rep A f)"
-proof -
-  define def where "def = set_extension.def A B f"
-  define Rep where "Rep = set_extension.Rep A f"
-  define Abs where "Abs = set_extension.Abs A f"
-  note 1 = this
-  have 2: "{Rep y | y \<in> def} \<subseteq> B"
-  proof
-    fix y
-    assume y: "y \<in> {Rep x | x \<in> def}"
-    obtain x where x: "x \<in> def \<and> y = Rep x" using y by blast
-    show "y \<in> B" using set_extension.Rep_type[OF set_ext] x Rep_def def_def
-      by unfold_types
-  qed
-  have 3: "B \<subseteq> {Rep x | x \<in> def}"
-  proof
-    fix y
-    assume y: "y \<in> B"
-    have "Abs y \<in> def"
-      using set_extension.Abs_type[OF set_ext] def_def Abs_def
-      by unfold_types
-    then obtain x where x: "x \<in> def \<and> y = Rep x"
-      using set_extension.Abs_inverse[OF set_ext] Abs_def Rep_def
-      by fastforce
-    show "y \<in> {Rep x | x \<in> def}" using x 
-      by blast
-  qed
-  show ?thesis
-    using 2 3 unfolding def_def Rep_def surj'_def
-    by (simp add: Basic.extensionality)
-  qed
-
-lemma l1: "x \<in> A \<Longrightarrow> surj' A B f \<Longrightarrow> (\<And>y. y \<in> B \<Longrightarrow> P y) \<Longrightarrow> P (f x)"
-  using replI surj'_def by auto
-
-lemma subst': "x = y \<Longrightarrow> P x \<Longrightarrow> P y" by (erule subst, assumption)
-
-thm Rep_surj[OF Rat.set_extension_axioms]
-
-
-lemma Rat_Rel_add': "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add rat_add"
-  unfolding  rel_fun_def Rat_Rel_def
-  apply atomize_rev'
-  apply (rule conjI)
-    (* drop non-relevant part of premises *)
-   apply (drule conjE1)+
-  unfolding rat_add_def
-    (* make goal more readable *)
-   apply(rule Fun_typeE[OF _ Rat.Abs_type])
-   apply (rule l1[OF _ Rep_surj[OF Rat.set_extension_axioms]], assumption)
-   apply (rule l1[OF _ Rep_surj[OF Rat.set_extension_axioms]], assumption)
-    (* clean up premises *)
-   apply (erule HOL.cnf.weakening_thm)
-   apply (erule HOL.cnf.weakening_thm)
-   defer
-    (* prove second goal *)
-  unfolding Rat.Abs_inverse
-   apply (erule conjE2)+
-   apply (erule subst')+
-   apply (rule refl)
-  sorry
 
 
 lemma rat_add_comm:
