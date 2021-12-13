@@ -1,5 +1,5 @@
 theory Transfer_Test
-imports Integer HOL.Transfer HOL.Sledgehammer
+imports Integer HOL.Transfer HOL.Sledgehammer Atomize
 begin
 
 (* resolve name clashes *)
@@ -20,6 +20,9 @@ hide_fact sumE
 hide_const fst snd
 hide_const Nat nat
 notation rel_fun  (infixr "===>" 55)
+
+method atomize_transfer =
+  (atomize', transfer, atomize_rev')
 
 definition "nat_leq m n \<equiv> nat_sub m n = 0"
 definition "nat_lt m n \<equiv> nat_leq m n \<and> m \<noteq> n"

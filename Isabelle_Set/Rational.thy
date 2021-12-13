@@ -8,8 +8,6 @@ definition "rat_rep = {{q \<in> rat_univ | fst p \<cdot> snd q = snd p \<cdot> f
 
 definition "int_in_rat i = {p \<in> rat_univ | fst p  = i \<cdot> snd p}"
 
-lemma h1: "\<exists>x. x \<in> A \<and> y = g x \<Longrightarrow> y \<in> {g z | z \<in> A}" by simp
-
 lemma
   [type]: "int_in_rat : Element \<int> \<Rightarrow> Element rat_rep"
 proof -
@@ -227,36 +225,6 @@ proof -
   thus ?thesis using assms ElementD by blast
 qed
 
-lemma atomize_all: "(\<And>x. P x) \<equiv> Trueprop (\<forall>x. P x)"
-  by presburger
-
-lemma atomize_all_sym: "Trueprop (\<forall>x. P x) \<equiv> (\<And>x. P x)"
-  by (fact atomize_all[symmetric])
-
-lemma atomize_imp: "(A \<Longrightarrow> B) \<equiv> Trueprop (A \<longrightarrow> B)"
-  by presburger
-
-lemma atomize_imp_sym: "Trueprop (A \<longrightarrow> B) \<equiv> (A \<Longrightarrow> B)"
-  by presburger
-
-lemma atomize_eq: "(x \<equiv> y) \<equiv> Trueprop (x = y)"
-  by presburger
-
-lemma atomize_eq_sym: "Trueprop (x = y) \<equiv> (x \<equiv> y)"
-  by presburger
-
-method atomize' =
-  (unfold atomize_imp atomize_all atomize_eq)
-
-method atomize_rev' =
-  (unfold atomize_all_sym atomize_imp_sym)
-
-method atomize_transfer =
-  (atomize', transfer, atomize_rev')
-
-
-
-
 lemma rat_add_comm:
   assumes "x: Rat" "y: Rat"
   shows "rat_add x y = rat_add y x"
@@ -267,5 +235,6 @@ proof-
   thus ?thesis using assms
     using ElementD by blast
 qed
+
 
 end

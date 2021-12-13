@@ -25,22 +25,13 @@ lemma Rat_Rel_Abs: "Rat_Rel a b \<Longrightarrow> Rat.Abs a = b"
   by (prove_rel_abs rel_def: Rat_Rel_def rep_inv: Rat.Rep_inverse)
 
 
-
 lemma Fun_typeE: "x \<in> A \<Longrightarrow> f : Element A \<Rightarrow> Element B \<Longrightarrow> f x \<in> B"
   by unfold_types
-
-lemma rat_add_type [type]: "rat_add: Rat \<Rightarrow> Rat \<Rightarrow> Rat"
-  apply unfold_types
-  apply (subst rat_add_def)
-  apply (rule Fun_typeE[OF _ Rat.Abs_type])
-  apply (frule Fun_typeE[OF _ Rat.Rep_type])
-  apply (frule Fun_typeE[OF _ Rat.Rep_type]) back
-  oops
 
 lemma conjE1: "(A \<and> B \<Longrightarrow> A)"
   by blast
 
-lemma conjE2: "A \<and> B \<Longrightarrow> (B \<Longrightarrow> P) \<Longrightarrow> P"
+lemma conjE1': "A \<and> B \<Longrightarrow> (B \<Longrightarrow> P) \<Longrightarrow> P"
   by blast
 
 definition "surj' A B f \<equiv> ({f x | x \<in> A} = B)"
@@ -96,9 +87,6 @@ lemma l1: "x \<in> A \<Longrightarrow> surj' A B f \<Longrightarrow> (\<And>y. y
 
 lemma subst': "x = y \<Longrightarrow> P x \<Longrightarrow> P y" by (erule subst, assumption)
 
-lemma l2: "(P \<Longrightarrow> Q \<Longrightarrow> R) \<Longrightarrow> (P \<and> Q \<Longrightarrow> R)"
-  by simp
-
 lemma triv: "P x \<Longrightarrow> P x"
   by simp
 
@@ -107,12 +95,9 @@ lemma l4: "x \<in> \<int> \<Longrightarrow> Int.Rep x = y \<Longrightarrow> y \<
 
 lemma l5: "x \<in> A \<Longrightarrow> x = y \<Longrightarrow> y \<in> A" by simp
 
-lemma conjE': "(P \<Longrightarrow> Q \<Longrightarrow> R) \<Longrightarrow> (P \<and> Q \<Longrightarrow> R)" sorry
+lemma conjE': "(P \<Longrightarrow> Q \<Longrightarrow> R) \<Longrightarrow> (P \<and> Q \<Longrightarrow> R)" by blast
 
 lemma doub: "(P \<Longrightarrow> Q) \<Longrightarrow> P \<Longrightarrow> Q" by simp
-
-lemma l6: "set_extension A B f \<Longrightarrow> x \<in> set_extension.def A B f \<Longrightarrow> set_extension.Rep A f x = y \<Longrightarrow> set_extension.Abs A f y = x"
-  using set_extension.Rep_inverse by blast
 
 definition "Rel def Rep x y \<equiv> y \<in> def \<and> Rep y = x"
 
@@ -184,7 +169,9 @@ lemma type_from_rel_fun: "(R ===> S) f g \<Longrightarrow> (\<And>y. y : A \<Lon
   unfolding rel_fun_def
   by blast
 
-lemma type_from_rel_fun_dep: "(\<And>x y. R x y \<Longrightarrow> S x y (f x) (g y)) \<Longrightarrow> (\<And>y. y : A \<Longrightarrow> \<exists>x. R x y) \<Longrightarrow> (\<And>x y. S x y (f x) (g y) \<Longrightarrow> g y : B y) \<Longrightarrow> g : (x: A) \<Rightarrow> (B x)"
+lemma type_from_rel_fun_dep:
+  "(\<And>x y. R x y \<Longrightarrow> S x y (f x) (g y)) \<Longrightarrow> (\<And>y. y : A \<Longrightarrow> \<exists>x. R x y) \<Longrightarrow> (\<And>x y. S x y (f x) (g y) \<Longrightarrow>
+    g y : B y) \<Longrightarrow> g : (x: A) \<Rightarrow> (B x)"
   apply unfold_types
   unfolding rel_fun_def
   by blast
@@ -203,7 +190,7 @@ proof ((subst rel_fun_def)+, atomize_rev', rule triv)
   proof (subst Rat_Rel_def, rule conjI)
     show "i' + j' \<in> \<rat>"
       apply (subst rat_add_def)
-      apply(rule Fun_typeE[OF _ Rat.Abs_type])
+      apply (rule Fun_typeE[OF _ Rat.Abs_type])
       apply (subst reps)+
       apply (insert in_reps)
       (* left to the user *)
@@ -219,7 +206,7 @@ proof ((subst rel_fun_def)+, atomize_rev', rule triv)
 qed
 
 lemma rat_add_type': "rat_add : Rat \<Rightarrow> Rat \<Rightarrow> Rat"
-  apply (rule type_from_rel_fun[where g=rat_add])
+  apply (rule type_from_rel_fun)
   apply (rule Rat_Rel_add)
    apply unfold_types[1]
   apply (erule h2[OF Rat.set_extension_axioms Rat_Rel_def'])
@@ -255,7 +242,7 @@ lemma "x : Bool"
   by (rule Any_typeI)
 
 lemma divides_type': "divides : Int' \<Rightarrow> Int' \<Rightarrow> Bool"
-  apply (rule type_from_rel_fun[where g=divides])
+  apply (rule type_from_rel_fun)
   apply (rule Int_Rel_divides'')
   apply unfold_types[1]
   apply (erule h2[OF Int.set_extension_axioms Int_Rel_def'])
@@ -337,7 +324,6 @@ proof ((subst rel_fun_def)+, atomize_rev')
   qed
 qed
 
-
 lemma rat_pow_type': "int_pow : Nat \<Rightarrow> Int' \<Rightarrow> Int'"
   apply (rule type_from_rel_fun)
   apply (rule Rat_Rel_pow'')
@@ -354,7 +340,8 @@ lemma rat_pow_type': "int_pow : Nat \<Rightarrow> Int' \<Rightarrow> Int'"
   apply assumption
   done
 
-(* Int_Rel i ===> (divides i \<sqdot> Int_Rel) ===> Int_Rel *)
+(* Int_Rel i i' ===> (divides i \<sqdot> Int_Rel) ===> Int_Rel *)
+(* Int_Rel i i' ===> Int_Rel j j' | divides i j ===> Int_Rel *)
 lemma Int_Rel_div': "Int_Rel i i' \<Longrightarrow> Int_Rel j j' \<Longrightarrow> divides i' j' \<Longrightarrow> Int_Rel (int_rep_div i j) (int_div i' j')"
 proof (unfold rel_fun_def)
   assume rels: "Int_Rel i i'" "Int_Rel j j'"
@@ -413,7 +400,7 @@ lemma Rat_Rel_add': "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add rat_add"
    defer
     (* prove second goal *)
   unfolding Rat.Abs_inverse
-   apply (erule conjE2)+
+   apply (erule conjE1')+
    apply (erule subst)+
    apply (rule refl)
   sorry
@@ -450,7 +437,7 @@ lemma Rat_Rel_pow': "(Nat_Rel ===> Int_Rel ===> Int_Rel) int_rep_pow int_pow"
    defer
   apply (subst int_pow_def)
   apply (subst Int.Abs_inverse)
-   apply (erule conjE2)+
+   apply (erule conjE1')+
    apply (erule subst)+
   apply (rule refl)
   sorry
