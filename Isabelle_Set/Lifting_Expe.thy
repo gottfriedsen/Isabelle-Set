@@ -1,5 +1,5 @@
 theory Lifting_Expe
-  imports Rational
+  imports Rational Dep_Rel
 begin
 
 method_setup unfold =
@@ -25,14 +25,28 @@ lemma Rat_Rel_Abs: "Rat_Rel a b \<Longrightarrow> Rat.Abs a = b"
   by (prove_rel_abs rel_def: Rat_Rel_def rep_inv: Rat.Rep_inverse)
 
 
-lemma Fun_typeE: "x \<in> A \<Longrightarrow> f : Element A \<Rightarrow> Element B \<Longrightarrow> f x \<in> B"
+lemma Fun_typeE': "x \<in> A \<Longrightarrow> f : Element A \<Rightarrow> Element B \<Longrightarrow> f x \<in> B"
   by unfold_types
 
+lemma Fun_typeE: "x : A \<Longrightarrow> f : A \<Rightarrow> B \<Longrightarrow> f x : B"
+  by unfold_types
+
+lemma rel_funE': "(A ===> B) f g \<Longrightarrow> (\<And>x y. A x y \<Longrightarrow> B (f x) (g y))"
+  using rel_fun_def by metis
+
 lemma conjE1: "(A \<and> B \<Longrightarrow> A)"
-  by blast
+  by (rule HOL.conjE, assumption+)
 
 lemma conjE1': "A \<and> B \<Longrightarrow> (B \<Longrightarrow> P) \<Longrightarrow> P"
-  by blast
+  by (rule HOL.conjE, assumption+)
+
+lemma conjE2: "A \<and> B \<Longrightarrow> B"
+  by (erule conjE, assumption)
+
+lemma conjE': "(P \<Longrightarrow> Q \<Longrightarrow> R) \<Longrightarrow> (P \<and> Q \<Longrightarrow> R)"
+  by (erule conjE, assumption)
+
+lemma ex_conj_True: "\<exists>x. P x \<Longrightarrow> \<exists>x. P x \<and> True" by simp
 
 definition "surj' A B f \<equiv> ({f x | x \<in> A} = B)"
 
@@ -91,11 +105,9 @@ lemma triv: "P x \<Longrightarrow> P x"
   by simp
 
 lemma l4: "x \<in> \<int> \<Longrightarrow> Int.Rep x = y \<Longrightarrow> y \<in> int_rep"
-  using Int.Rep_type Fun_typeE by blast
+  using Int.Rep_type Fun_typeE' by blast
 
 lemma l5: "x \<in> A \<Longrightarrow> x = y \<Longrightarrow> y \<in> A" by simp
-
-lemma conjE': "(P \<Longrightarrow> Q \<Longrightarrow> R) \<Longrightarrow> (P \<and> Q \<Longrightarrow> R)" by blast
 
 lemma doub: "(P \<Longrightarrow> Q) \<Longrightarrow> P \<Longrightarrow> Q" by simp
 
@@ -120,7 +132,24 @@ next
     using rel by (meson Rel_def)
 next
   show "x \<in> B"
-    using axioms rel set_extension.Rep_type by (metis Rel_def Rep_def def_def Fun_typeE)
+    using axioms rel set_extension.Rep_type by (metis Rel_def Rep_def def_def Fun_typeE')
+qed
+
+lemma Rel'':
+  fixes A B f
+  defines "Rep \<equiv> set_extension.Rep A f"
+    and "Abs \<equiv> set_extension.Abs A f"
+    and "def \<equiv> set_extension.def A B f"
+  assumes axioms: "set_extension A B f"
+  shows "x \<in> def \<Longrightarrow> Rel def Rep (Rep x) x" "y \<in> B \<Longrightarrow> Rel def Rep y (Abs y)"
+proof -
+  show "x \<in> def \<Longrightarrow> Rel def Rep (Rep x) x"
+    by (simp add: Lifting_Expe.Rel_def)
+next
+  show "y \<in> B \<Longrightarrow> Rel def Rep y (Abs y)"
+    unfolding Rel_def
+    using set_extension.Abs_type[OF axioms] set_extension.Abs_inverse[OF axioms]
+    by (simp add: Abs_def Fun_typeE' def_def Rep_def)
 qed
 
 lemma h2:
@@ -147,6 +176,15 @@ lemma Rel':
 
 definition "Nat_Rel m n \<equiv> n \<in> nat \<and> m = n"
 
+definition "Rel' A x y \<equiv> x \<in> A \<and> x = y"
+
+lemma Nat_Rel_def'': "Nat_Rel = Rel' nat"
+  unfolding Nat_Rel_def Rel'_def
+  by fast
+
+lemma Rel'I: "x \<in> A \<Longrightarrow> Rel' A x x"
+  unfolding Rel'_def by simp
+
 lemma Int_Rel_def': "Int_Rel = Rel \<int> Int.Rep"
   unfolding Int_Rel_def Rel_def by simp
 
@@ -164,9 +202,24 @@ lemma type_from_rel_elem: "R = Rel A f \<Longrightarrow> R x y \<Longrightarrow>
   unfolding Rel_def
   by blast
 
+lemma rel_from_type_elem: "y : Element A \<Longrightarrow> R = Rel A f \<Longrightarrow> \<exists>x. R x y"
+  apply unfold_types
+  unfolding Rel_def
+  by blast
+
+lemma rel_from_type_elem': "y : Element A \<Longrightarrow> R = Rel A f \<Longrightarrow> (\<And>x. R x y \<Longrightarrow> Q) \<Longrightarrow> Q"
+  apply unfold_types
+  unfolding Rel_def
+  by blast
+
 lemma type_from_rel_fun: "(R ===> S) f g \<Longrightarrow> (\<And>y. y : A \<Longrightarrow> \<exists>x. R x y) \<Longrightarrow> (\<And>x y. S (f x) (g y) \<Longrightarrow> g y : B) \<Longrightarrow> g : A \<Rightarrow> B"
   apply unfold_types
   unfolding rel_fun_def
+  by blast
+
+lemma type_from_rel_fun_adj: "([x x' \<Colon> R | P x x'] \<Rrightarrow> S) f g \<Longrightarrow> (\<And>x'. x' : A \<and> Q x' \<Longrightarrow> \<exists>x. R x x' \<and> P x x') \<Longrightarrow> (\<And>x x'. S (f x) (g x') \<Longrightarrow> g x' : B) \<Longrightarrow> g : (Q \<sqdot> A) \<Rightarrow> B"
+  apply unfold_types
+  unfolding dep_rel_fun_def rel_adj_def
   by blast
 
 lemma type_from_rel_fun_dep:
@@ -174,6 +227,13 @@ lemma type_from_rel_fun_dep:
     g y : B y) \<Longrightarrow> g : (x: A) \<Rightarrow> (B x)"
   apply unfold_types
   unfolding rel_fun_def
+  by blast
+
+lemma type_from_rel_fun_dep':
+  "([x x' \<Colon> R] \<Rrightarrow> S x x') f g \<Longrightarrow> (\<And>x'. x' : A \<Longrightarrow> \<exists>x. R x x') \<Longrightarrow> (\<And>x x'. S x x' (f x) (g x') \<Longrightarrow>
+    g x' : B x') \<Longrightarrow> g : (x : A) \<Rightarrow> (B x)"
+  apply unfold_types
+  unfolding dep_rel_fun_def rel_adj_def
   by blast
 
 lemma Rat_Rel_add'': "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add rat_add"
@@ -190,7 +250,7 @@ proof ((subst rel_fun_def)+, atomize_rev', rule triv)
   proof (subst Rat_Rel_def, rule conjI)
     show "i' + j' \<in> \<rat>"
       apply (subst rat_add_def)
-      apply (rule Fun_typeE[OF _ Rat.Abs_type])
+      apply (rule Fun_typeE'[OF _ Rat.Abs_type])
       apply (subst reps)+
       apply (insert in_reps)
       (* left to the user *)
@@ -238,9 +298,6 @@ proof ((subst rel_fun_def)+, atomize_rev', rule triv)
     done
 qed
 
-lemma "x : Bool"
-  by (rule Any_typeI)
-
 lemma divides_type': "divides : Int' \<Rightarrow> Int' \<Rightarrow> Bool"
   apply (rule type_from_rel_fun)
   apply (rule Int_Rel_divides'')
@@ -279,7 +336,7 @@ lemma Int_Rel_0': "Int_Rel int_0_rep int_0"
 proof (subst Int_Rel_def, rule conjI)
   show "int_0 \<in> \<int>"
     apply (subst int_0_def)
-    apply(rule Fun_typeE[OF _ Int.Abs_type])
+    apply(rule Fun_typeE'[OF _ Int.Abs_type])
     (* left to the user *)
     sorry
 next
@@ -295,7 +352,7 @@ lemma "int_0_type": "int_0 : Int'"
   apply (rule Int_Rel_0'[unfolded Int_Rel_def'])
   done
 
-lemma Rat_Rel_pow'': "(Nat_Rel ===> Int_Rel ===> Int_Rel) int_rep_pow int_pow"
+lemma Int_Rel_pow'': "(Nat_Rel ===> Int_Rel ===> Int_Rel) int_rep_pow int_pow"
 proof ((subst rel_fun_def)+, atomize_rev')
   fix n i n' i'
   assume rels: "Nat_Rel n n'" "Int_Rel i i'"
@@ -309,7 +366,7 @@ proof ((subst rel_fun_def)+, atomize_rev')
   proof (subst Int_Rel_def, rule conjI)
     show "int_pow n' i' \<in> \<int>"
       apply (subst int_pow_def)
-      apply(rule Fun_typeE[OF _ Int.Abs_type])
+      apply(rule Fun_typeE'[OF _ Int.Abs_type])
       apply (subst reps)+
       apply (insert in_reps)
       (* left to the user *)
@@ -326,7 +383,7 @@ qed
 
 lemma rat_pow_type': "int_pow : Nat \<Rightarrow> Int' \<Rightarrow> Int'"
   apply (rule type_from_rel_fun)
-  apply (rule Rat_Rel_pow'')
+  apply (rule Int_Rel_pow'')
   apply unfold_types[1]
   apply (erule h2'[OF Nat_Rel_def'])
 
@@ -338,6 +395,18 @@ lemma rat_pow_type': "int_pow : Nat \<Rightarrow> Int' \<Rightarrow> Int'"
   apply (rule type_from_rel_elem)
   apply (rule Int_Rel_def')
   apply assumption
+  done
+
+lemma rat_pow_type'':
+  assumes types: "n : Nat" "i : Int'"
+  shows "int_pow n i : Int'"
+  apply (rule type_from_rel_elem)
+  apply (rule Int_Rel_def')
+  apply (rule rel_funE'[OF rel_funE'[OF Int_Rel_pow'']])
+  apply (subst Nat_Rel_def'')
+  apply (fact Rel'I[OF ElementD[OF types(1)]])
+  apply (subst Int_Rel_def')
+  apply (fact Rel''(1)[OF Int.set_extension_axioms ElementD[OF types(2)]])
   done
 
 (* Int_Rel i i' ===> (divides i \<sqdot> Int_Rel) ===> Int_Rel *)
@@ -358,7 +427,7 @@ proof (unfold rel_fun_def)
   proof (subst Int_Rel_def, rule conjI)
     show "int_div i' j' \<in> \<int>"
       apply (subst int_div_def)
-      apply(rule Fun_typeE[OF _ Int.Abs_type])
+      apply(rule Fun_typeE'[OF _ Int.Abs_type])
       apply (subst reps)+
       apply (insert in_reps)
       apply (insert prems')
@@ -372,8 +441,40 @@ proof (unfold rel_fun_def)
       apply (rule refl)
       done
     qed
-qed
+  qed
 
+lemma Int_Rel_div''': "([i i' \<Colon> Int_Rel] \<Rrightarrow> [j j' \<Colon> Int_Rel | divides i' j'] \<Rrightarrow> Int_Rel) int_rep_div int_div"
+proof ((subst dep_rel_fun_def rel_adj_def)+, atomize_rev', rule triv)
+  fix i j i' j'
+  assume rels_raw: "Int_Rel i i'" "Int_Rel j j' \<and> divides i' j'"
+  note rels = rels_raw(1) conjE1[OF rels_raw(2)]
+  note prems = conjE2[OF rels_raw(2)]
+  note 1 = Rel[OF Int.set_extension_axioms rels(1)[unfolded Int_Rel_def']]
+  note 2 = Rel[OF Int.set_extension_axioms rels(2)[unfolded Int_Rel_def']]
+  note reps = 1(1) 2(1)
+  note abss = 1(2) 2(2)
+  note in_defs = 1(3) 2(3)
+  note in_reps = 1(4) 2(4)
+  note prems' = prems[unfolded divides_def reps]
+  show "Int_Rel (int_rep_div i j) (int_div i' j')"
+  proof (subst Int_Rel_def, rule conjI)
+    show "int_div i' j' \<in> \<int>"
+      apply (subst int_div_def)
+      apply (rule Fun_typeE'[OF _ Int.Abs_type])
+      apply (subst reps)+
+      apply (insert in_reps prems')
+      (* left to the user *)
+      sorry
+  next
+    show "Int.Rep (int_div i' j') = int_rep_div i j"
+      apply (subst int_div_def)
+      apply (subst Int.Abs_inverse)
+      apply (subst reps)+
+      apply (rule refl)
+      done
+  qed
+qed
+  
 lemma int_div_type': "int_div: (i : Int') \<Rightarrow> (divides i \<sqdot> Int') \<Rightarrow> Int'"
   apply (rule type_from_rel_fun_dep)
   prefer 2
@@ -381,7 +482,37 @@ lemma int_div_type': "int_div: (i : Int') \<Rightarrow> (divides i \<sqdot> Int'
   apply (rule h2[OF Int.set_extension_axioms Int_Rel_def'], assumption)
   oops
 
+lemma int_div_type': "int_div: (i : Int') \<Rightarrow> (divides i \<sqdot> Int') \<Rightarrow> Int'"
+  apply (rule type_from_rel_fun_dep')
+  apply (rule Int_Rel_div''')
+  apply unfold_types[1]
+  apply (erule h2[OF Int.set_extension_axioms Int_Rel_def'])
+  
+  apply (rule type_from_rel_fun_adj)
+  apply assumption
+  apply unfold_types[1]
+  apply (erule conjE)
+  apply (rule ex_conj_True)
+  apply (erule h2[OF Int.set_extension_axioms Int_Rel_def'])
+  
+  apply (rule type_from_rel_elem)
+  apply (rule Int_Rel_def')
+  apply assumption
+  done
 
+lemma int_div_type'':
+  assumes types: "i : Int'" "j : Int'"
+    and refinements: "divides i j"
+  shows "int_div i j : Int'"
+  apply (rule type_from_rel_elem)
+  apply (rule Int_Rel_def')
+  apply (rule Int_Rel_div')
+  apply (subst Int_Rel_def')
+  apply (fact Rel''(1)[OF Int.set_extension_axioms ElementD[OF types(1)]])
+  apply (subst Int_Rel_def')
+  apply (fact Rel''(1)[OF Int.set_extension_axioms ElementD[OF types(2)]])
+  apply (fact refinements)
+  done
 
 lemma Rat_Rel_add': "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add rat_add"
   unfolding  rel_fun_def Rat_Rel_def
@@ -391,7 +522,7 @@ lemma Rat_Rel_add': "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add rat_add"
    apply (drule conjE1)+
   unfolding rat_add_def
     (* make goal more readable *)
-   apply(rule Fun_typeE[OF _ Rat.Abs_type])
+   apply(rule Fun_typeE'[OF _ Rat.Abs_type])
    apply (rule l1[OF _ Rep_surj[OF Rat.set_extension_axioms]], assumption)
    apply (rule l1[OF _ Rep_surj[OF Rat.set_extension_axioms]], assumption)
     (* clean up premises *)
@@ -431,7 +562,7 @@ lemma Rat_Rel_pow': "(Nat_Rel ===> Int_Rel ===> Int_Rel) int_rep_pow int_pow"
   apply (rule conjI)
    apply (drule conjE1)+
   apply (subst int_pow_def)
-   apply(rule Fun_typeE[OF _ Int.Abs_type])
+   apply(rule Fun_typeE'[OF _ Int.Abs_type])
    apply (rule l1[OF _ Rep_surj[OF Int.set_extension_axioms]], assumption)
    apply (erule HOL.cnf.weakening_thm) back
    defer
@@ -452,7 +583,7 @@ lemma Int_Rel_div'': "Int_Rel i i' \<Longrightarrow> Int_Rel j j' \<Longrightarr
   prefer 2 apply assumption
   apply (erule HOL.cnf.weakening_thm)
   apply (subst int_div_def)
-   apply(rule Fun_typeE[OF _ Int.Abs_type])
+   apply(rule Fun_typeE'[OF _ Int.Abs_type])
    apply (rule doub[where ?P="Int.Rep i' = i"])
     prefer 2 apply assumption
    apply (rule doub[where ?P="Int.Rep j' = j"])
