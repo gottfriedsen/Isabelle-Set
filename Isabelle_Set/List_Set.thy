@@ -1,5 +1,5 @@
 theory List_Set
-  imports Option_Set
+  imports Option_Set Lifting_Expe
 begin
 
 definition Nil_rep where "Nil_rep = inl {}"
@@ -142,6 +142,10 @@ qed
 
 definition "List_Rel A xs xs' \<equiv> xs' \<in> List.def A \<and> List.Rep A xs' = xs"
 
+lemma List_Rel_def': "List_Rel A = Rel (List.def A) (List.Rep A)"
+  unfolding List_Rel_def Rel_def
+  by blast
+
 definition "Eq A x y \<equiv> x \<in> A \<and> x = y"
 
 lemma Eq_refl [transfer_rule]: "x \<in> A \<Longrightarrow> Eq A x x"
@@ -181,5 +185,176 @@ lemma List_ball' [transfer_rule]: "((List_Rel A ===> (=)) ===> (=)) (ball (List_
 lemma Nil_neq_Cons: "ball A (\<lambda>x. ball (list A) (\<lambda>xs. Nil A \<noteq> Cons A x xs))"
   apply (transfer fixing: A)
   by simp
+
+hide_type Set.set
+
+axiomatization list_rep_rec :: "set \<Rightarrow> (set \<Rightarrow> set \<Rightarrow> set \<Rightarrow> set) \<Rightarrow> set \<Rightarrow> set"
+  where list_rep_rec_nil: "list_rep_rec n c Nil_rep = n"
+  and list_rep_rec_cons: "x : Element A \<Longrightarrow> xs : Element (List_rep A) \<Longrightarrow>
+    list_rep_rec n c (Cons_rep x xs) = c x xs (list_rep_rec n c xs)"
+
+lemma list_rec_type [type]:
+  "list_rep_rec : X \<Rightarrow> (Element A \<Rightarrow> Element (List_rep A) \<Rightarrow> X \<Rightarrow> X) \<Rightarrow> Element (List_rep A) \<Rightarrow> X"
+proof (intro Pi_typeI)
+  fix N C xs
+  assume [type]: "N : X"
+    "C : Element A \<Rightarrow> Element (List_rep A) \<Rightarrow> X \<Rightarrow> X" "xs : Element (List_rep A)"
+  show "list_rep_rec N C xs : X"
+    by (induction xs rule: List_rep_induct)
+    (auto simp only: list_rep_rec_nil list_rep_rec_cons)
+qed
+
+lemma list_rep_rec_ext:
+  assumes c: "c : Element A \<Rightarrow> Element (List_rep A) \<Rightarrow> B \<Rightarrow> B"
+    and c': "c' : Element A \<Rightarrow> Element (List_rep A) \<Rightarrow> B \<Rightarrow> B"
+    and eq: "\<And>x xs a. x : Element A \<Longrightarrow> xs : Element (List_rep A) \<Longrightarrow> a : B \<Longrightarrow> c x xs a = c' x xs a"
+    and n: "n : B"
+    and xs: "xs : Element (List_rep A)"
+  shows "list_rep_rec n c xs = list_rep_rec n c' xs"
+proof -
+  have "n : B \<Longrightarrow> list_rep_rec n c xs = list_rep_rec n c' xs"
+  proof (induction arbitrary: n rule: List_rep_induct[OF xs])
+    case 1
+    show ?case by ((subst list_rep_rec_nil)+, rule refl)
+  next
+    case (2 x xs)
+    then show ?case
+      apply (subst list_rep_rec_cons[OF 2(1, 2)])+
+      apply (subst 2(3))
+      apply assumption
+      apply (rule eq)
+      apply assumption+
+      apply (rule Fun_typeE[OF 2(2), of "list_rep_rec n c'" B])
+      apply (rule Fun_typeE[OF c', of "list_rep_rec n" "Element (List_rep A) \<Rightarrow> B"])
+      apply (rule Fun_typeE[OF 2(4), of "list_rep_rec" "(Element A \<Rightarrow> Element (List_rep A) \<Rightarrow> B \<Rightarrow> B) \<Rightarrow> Element (List_rep A) \<Rightarrow> B"])
+      apply (rule list_rec_type)
+      done
+  qed
+  note 1 = this
+  show "list_rep_rec n c xs = list_rep_rec n c' xs"
+    by (fact 1[OF n])
+qed
+
+definition "list_rec A n c xs \<equiv> list_rep_rec n (\<lambda>x xs a. c x (List.Abs A xs) a) (List.Rep A xs)"
+
+lemma Eq_def'': "Eq A = Rel' A"
+  unfolding Eq_def Rel'_def by (rule refl)
+
+lemma Eq_def': "Eq A = Rel A id"
+  unfolding Eq_def Rel_def id_def by blast
+
+lemma ext: "(\<And>x. f x = g x) \<Longrightarrow> f = g" by (erule HOL.ext)
+
+lemma List_rec: "(Eq B ===> (Eq A ===> List_Rel A ===> Eq B ===> Eq B) ===> List_Rel A ===> Eq B) list_rep_rec (list_rec A)"
+proof (
+    rewrite in "\<hole>" rel_fun_def,
+    rewrite in "\<forall>_ _. _ \<longrightarrow> \<hole>" rel_fun_def,
+    rewrite in "\<forall>_ _. _ \<longrightarrow> (\<forall>_ _. _ \<longrightarrow> \<hole>)" rel_fun_def,
+    atomize_rev', rule triv)
+  fix n f xs n' f' xs'
+  assume rels: "Eq B n n'" "(Eq A ===> List_Rel A ===> Eq B ===> Eq B) f f'" "List_Rel A xs xs'"
+  note 1 = Rel'[OF Eq_def' rels(1)]
+  note 3 = Rel[OF List.set_extension_axioms rels(3)[unfolded List_Rel_def']]
+  note reps = 1(1) 3(1)
+  note abss = 1(2) 3(2)
+  note in_defs = 1(3) 3(3)
+  note in_reps = 1(4) 3(4)
+
+  { fix x xs a
+    assume assms: "x \<in> A" "xs \<in> List_rep A" "a \<in> B"
+    have "f' x (List.Abs A xs) a = f x xs a"
+    by (fact
+      conjE2[OF rel_funE'[OF
+        rel_funE'[OF
+          rel_funE'[OF rels(2) Eq_refl[OF assms(1)]]
+          Rel''(2)[OF List.set_extension_axioms assms(2), unfolded List_Rel_def'[symmetric]]]
+        Eq_refl[OF assms(3)], unfolded Eq_def], symmetric])
+  }
+  note f_rep = this
+
+  { fix x xs a
+    assume assms: "x : Element A" "xs : Element (List_rep A)" "a : Element B"
+    have "f x xs a = f' x (List.Abs A xs) a"
+      by (fact f_rep[OF ElementD[OF assms(1)] ElementD[OF assms(2)] ElementD[OF assms(3)], symmetric])
+  }
+  note f_rep' = this
+
+  have f'_type: "f' : Element A \<Rightarrow> List A \<Rightarrow> Element B \<Rightarrow> Element B"
+    apply (rule type_from_rel_fun)
+    apply (rule rels(2))
+    apply unfold_types[1]
+    apply (erule h2'[OF Eq_def'])
+    
+    apply (rule type_from_rel_fun)
+    apply assumption
+     apply unfold_types[1]
+    apply (erule h2[OF List.set_extension_axioms List_Rel_def'])
+    
+    apply (rule type_from_rel_fun)
+    apply assumption
+    apply unfold_types[1]
+    apply (erule h2'[OF Eq_def'])
+    
+    apply (rule type_from_rel_eq2)
+    apply (rule Eq_def'')
+    apply assumption
+    done
+
+  have f_type: "f : Element A \<Rightarrow> Element (List_rep A) \<Rightarrow> Element B \<Rightarrow> Element B"
+    apply (rule type_from_rel_fun1)
+    apply (rule rels(2))
+    apply unfold_types[1]
+    apply (erule h2'1[OF Eq_def'])
+    
+    apply (rule type_from_rel_fun1)
+    apply assumption
+     apply unfold_types[1]
+    apply (erule h21[OF List.set_extension_axioms List_Rel_def'])
+    
+    apply (rule type_from_rel_fun1)
+    apply assumption
+    apply unfold_types[1]
+    apply (erule h2'1[OF Eq_def'])
+    
+    apply (rule type_from_rel_eq1)
+    apply (rule Eq_def'')
+    apply assumption
+    done
+
+  note types = ElementI[OF in_defs(1)] ElementI[OF in_defs(2)] ElementI[OF in_reps(1)] ElementI[OF in_reps(2)] f_type f'_type
+  show "Eq B (list_rep_rec n f xs) (list_rec A n' f' xs')"
+  proof (subst Eq_def, rule conjI)
+    show "list_rep_rec n f xs \<in> B"
+    (* doesn't need to be automated *)
+    proof (induction rule: List_rep_induct[OF types(4)])
+      case 1
+      show ?case
+      apply (subst list_rep_rec_nil)
+      apply (rule in_reps)
+      done
+    next
+      case (2 x xs)
+      show ?case
+        apply (subst list_rep_rec_cons[OF 2(1, 2)])
+        apply (rule ElementD)
+        apply (fact
+          Fun_typeE[of "list_rep_rec n f xs", OF ElementI[OF 2(3)]
+            Fun_typeE[of xs _ "f x", OF 2(2)
+              Fun_typeE[OF 2(1) types(5)]]])
+        done
+    qed
+  next
+    show "list_rep_rec n f xs = list_rec A n' f' xs'"
+      apply (subst list_rec_def)
+      apply (subst reps)+
+      apply (rule list_rep_rec_ext[OF f_type _ f_rep'])
+      defer
+      apply assumption+
+        apply (fact types)+
+      apply (rule Fun_typeE'')+
+      apply unfold_types
+      done
+  qed
+qed
 
 end
