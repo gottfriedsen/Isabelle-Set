@@ -1,5 +1,5 @@
 theory Lifting_Examples_1
-  imports Lifting_Set Rational
+  imports Lifting_Set Rational Lifting_Group
 begin
 
 lemma Int_Rel_def': "Int_Rel = Ext_Rel \<int> Int.Rep"
@@ -197,6 +197,89 @@ proof -
     done
 qed
 
+hide_const  abs
+
+
+definition "const = K"
+
+lemma lifting_start: "lifting Eq_rep Eq_abs T abs rep \<Longrightarrow> Eq_rep x x \<Longrightarrow> const True (T x (abs x)) \<Longrightarrow> T x (abs x)"
+  using lifting_Eq_rep(1)
+  by metis
+
+lemma eq_resp_simp: "is_equality_set in_dom R \<Longrightarrow> (\<And>z. in_dom z \<Longrightarrow> P z z) \<Longrightarrow> (\<And>x y. R x y \<Longrightarrow> P x y)"
+  by (metis Lifting_Set.equalityE(1) Lifting_Set.equalityE(2))
+
+lemma h1: "is_equality_set (elem A) (eq A)"
+  unfolding is_equality_set_def elem_def eq_def
+  by blast
+
+lemma h2: "elem A x \<Longrightarrow> eq A x x"
+  unfolding elem_def eq_def by blast
+
+lemma rat_rep_add_resp: "elem rat_rep z \<Longrightarrow> elem rat_rep za \<Longrightarrow> elem rat_rep (rat_rep_add za z)"
+  sorry
+
+lemma "\<exists>t. (Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add t"
+  apply (rule exI)
+  apply (rule lifting_start[where T="Rat_Rel ===> Rat_Rel ===> Rat_Rel" and x=rat_rep_add])
+    apply (rule fun_lifting')
+  apply (rule Rat_Rel_lifting)
+   apply (rule fun_lifting')
+     apply (rule Rat_Rel_lifting)
+    apply (rule Rat_Rel_lifting)
+   apply (rewrite in "\<hole>" rel_fun_def, rewrite in "\<forall>_ _. _ \<longrightarrow> \<hole>" rel_fun_def, atomize_rev')
+proof -
+  fix x y x' y'
+  show "eq rat_rep x y \<Longrightarrow> eq rat_rep x' y' \<Longrightarrow> eq rat_rep (rat_rep_add x x') (rat_rep_add y y')"
+    apply (rule eq_resp_simp[OF h1, of rat_rep "\<lambda>x' y'. eq rat_rep (rat_rep_add x x') (rat_rep_add y y')"])
+    defer apply assumption
+  proof -
+    fix z
+    show "eq rat_rep x y \<Longrightarrow> eq rat_rep x' y' \<Longrightarrow> elem rat_rep z \<Longrightarrow> eq rat_rep (rat_rep_add x z) (rat_rep_add y z)"
+      apply (rule eq_resp_simp[OF h1, of rat_rep "\<lambda>x y. eq rat_rep (rat_rep_add x z) (rat_rep_add y z)"])
+      defer apply assumption
+      apply (rule h2)
+      apply (rule rat_rep_add_resp, assumption, assumption)
+      done
+  qed
+next
+  show "const True
+     ((Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add (map_fun Rat.Rep (map_fun Rat.Rep Rat.Abs) rat_rep_add))"
+  apply (subst const_def) ..
+qed
+
+
+lemma "\<exists>T t. T rat_rep_add t"
+  apply (rule exI, rule exI)
+  apply (rule lifting_start[where x=rat_rep_add])
+    apply (rule fun_lifting')
+  apply (rule Rat_Rel_lifting)
+   apply (rule fun_lifting')
+     apply (rule Rat_Rel_lifting)
+    apply (rule Rat_Rel_lifting)
+  apply (subst refl)
+   apply (rewrite in "\<hole>" rel_fun_def, rewrite in "\<forall>_ _. _ \<longrightarrow> \<hole>" rel_fun_def, atomize_rev')
+proof -
+  fix x y x' y'
+  show "eq rat_rep x y \<Longrightarrow> eq rat_rep x' y' \<Longrightarrow> eq rat_rep (rat_rep_add x x') (rat_rep_add y y')"
+    apply (rule eq_resp_simp[OF h1, of rat_rep "\<lambda>x' y'. eq rat_rep (rat_rep_add x x') (rat_rep_add y y')"])
+    defer apply assumption
+  proof -
+    fix z
+    show "eq rat_rep x y \<Longrightarrow> eq rat_rep x' y' \<Longrightarrow> elem rat_rep z \<Longrightarrow> eq rat_rep (rat_rep_add x z) (rat_rep_add y z)"
+      apply (rule eq_resp_simp[OF h1, of rat_rep "\<lambda>x y. eq rat_rep (rat_rep_add x z) (rat_rep_add y z)"])
+      defer apply assumption
+      apply (rule h2)
+      apply (rule rat_rep_add_resp, assumption, assumption)
+      done
+  qed
+next
+  show "const True
+     ((Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add (map_fun Rat.Rep (map_fun Rat.Rep Rat.Abs) rat_rep_add))"
+  apply (subst const_def) ..
+qed
+
+
 lemma Rat_Rel_add'': "(Rat_Rel ===> Rat_Rel ===> Rat_Rel) rat_rep_add rat_add"
 proof (
     rewrite in "\<hole>" rel_fun_def,
@@ -248,6 +331,7 @@ proof (
     apply (fact rels(2))
     done
 qed
+
 
 lemma rat_add_type': "rat_add : Rat \<Rightarrow> Rat \<Rightarrow> Rat"
 proof -

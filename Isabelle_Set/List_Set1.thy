@@ -1,5 +1,5 @@
 theory List_Set1
-  imports Option_Set Lifting_Expe Lifting_Set
+  imports Option_Set Lifting_Expe Lifting_Set Lifting_Group
 begin
 
 definition Nil_rep where "Nil_rep = inl {}"
@@ -298,9 +298,6 @@ definition "Eq_rep_List Eq \<equiv> list_all2' Eq"
 definition "Eq_abs_List Eq \<equiv> list_all2' Eq"
 
 
-definition "rel_comp' R S x y \<equiv> (\<exists>z. S x z \<and> R z y)"
-definition "rel_inv R x y \<equiv> R y x"
-
 definition "relator_resp_functor R F \<equiv>
   \<forall>r f g. (\<forall>x y. r x y \<longrightarrow> r x (f x) \<and> r (g y) y) \<longrightarrow>
     (\<forall>x y. R r x y \<longrightarrow> R r x (F f x) \<and> R r (F g y) y)"
@@ -329,14 +326,6 @@ qed
 definition "relator R \<equiv>
   (\<forall>S T. rel_comp' (R S) (R T) = R (rel_comp' S T)) \<and>
   (\<forall>S. rel_inv (R S) = R (rel_inv S))"
-
-lemma per_idemp: "partial_equivalence Eq \<Longrightarrow> Eq = rel_comp' Eq Eq"
-  unfolding partial_equivalence_unfold rel_comp'_def
-  by blast
-
-lemma per_inv: "partial_equivalence Eq \<Longrightarrow> Eq = rel_inv Eq"
-  unfolding partial_equivalence_unfold rel_inv_def
-  by blast
 
 lemma relator_per:
   assumes R: "relator R"
@@ -370,60 +359,6 @@ qed
 lemma list_all2'_is_relator: "relator list_all2'"
   sorry
 
-lemma per_sym: "partial_equivalence R \<Longrightarrow> R x y \<Longrightarrow> R y x"
-  unfolding partial_equivalence_unfold
-  by blast
-
-lemma per_trans: "partial_equivalence R \<Longrightarrow> R x y \<Longrightarrow> R y z \<Longrightarrow> R x z"
-  unfolding partial_equivalence_unfold
-  by blast
-
-lemma rel_comp'I: "R x y \<Longrightarrow> S y z \<Longrightarrow> rel_comp' S R x z"
-  unfolding rel_comp'_def
-  by blast
-
-lemma rel_invI: "R x y \<Longrightarrow> rel_inv R y x"
-  unfolding rel_inv_def .
-
-lemma lifting_rel_comp:
-  assumes assm: "lifting Eq_rep Eq_abs T abs rep"
-  shows "rel_comp' T (rel_inv T) = Eq_abs" "rel_comp' (rel_inv T) T = Eq_rep"
-proof -
-  show "rel_comp' T (rel_inv T) = Eq_abs"
-  proof ((rule ext)+, rule iffI)
-    fix x y
-    assume prems: "rel_comp' T (rel_inv T) x y"
-    show "Eq_abs x y"
-      using assm prems
-      unfolding lifting_unfold rel_comp'_def rel_inv_def
-      by metis
-  next
-    fix x y
-    assume prem: "Eq_abs x y"
-    show "rel_comp' T (rel_inv T) x y"
-      using assm prem
-      unfolding lifting_unfold rel_comp'_def rel_inv_def
-      by metis
-  qed
-next
-  show "rel_comp' (rel_inv T) T = Eq_rep"
-  proof ((rule ext)+, rule iffI)
-    fix x y
-    assume prems: "rel_comp' (rel_inv T) T x y"
-    show "Eq_rep x y"
-      using assm prems
-      unfolding lifting_unfold rel_comp'_def rel_inv_def
-      by metis
-  next
-    fix x y
-    assume prem: "Eq_rep x y"
-    show "rel_comp' (rel_inv T) T x y"
-      using assm prem
-      unfolding lifting_unfold rel_comp'_def rel_inv_def
-      by metis
-  qed
-qed
-
 lemma relator_inv: "relator R \<Longrightarrow> rel_inv (R S) = R (rel_inv S)"
   using relator_def
   by blast
@@ -431,129 +366,6 @@ lemma relator_inv: "relator R \<Longrightarrow> rel_inv (R S) = R (rel_inv S)"
 lemma relator_comp: "relator R \<Longrightarrow> rel_comp' (R S) (R T) = R (rel_comp' S T)"
   using relator_def
   by blast
-
-lemma inv_lifting:
-  assumes "lifting Eq_rep Eq_abs T abs rep"
-  shows "lifting Eq_abs Eq_rep (rel_inv T) rep abs"
-  apply (
-    (subst lifting_unfold rel_fun_def)+,
-    (rule conjI)?; (rule conjI)?; (rule conjI)?; (rule conjI)?; (rule conjI)?)
-  using assms[unfolded lifting_unfold] rel_inv_def
-  by metis+
-
-lemma comp_lifting:
-  assumes "lifting Eq_rep1 Eq_int T1 abs1 rep1"
-      and "lifting Eq_int Eq_abs2 T2 abs2 rep2"
-    shows "lifting Eq_rep1 Eq_abs2 (rel_comp' T2 T1) (comp abs2 abs1) (comp rep1 rep2)"
-proof (rule liftingI)
-  show "\<And>x y. Eq_rep1 x y \<Longrightarrow> Eq_rep1 y x"
-    using assms[unfolded lifting_unfold]
-    by metis
-next
-  show "\<And>x y. Eq_abs2 x y \<Longrightarrow> Eq_abs2 y x"
-  using assms[unfolded lifting_unfold]
-  by metis
-next
-  show "\<And>x y z. Eq_rep1 x y \<Longrightarrow> Eq_rep1 y z \<Longrightarrow> Eq_rep1 x z"
-  using assms[unfolded lifting_unfold]
-  by metis
-next
-  show "\<And>x y z. Eq_abs2 x y \<Longrightarrow> Eq_abs2 y z \<Longrightarrow> Eq_abs2 x z"
-  using assms[unfolded lifting_unfold]
-  by metis
-next
-  fix x y z
-  assume prems:
-    "rel_comp' T2 T1 x z"
-    "rel_comp' T2 T1 y z"
-  obtain v where 1: "T1 x v" "T2 v z"
-    using prems(1) rel_comp'_def
-    by metis
-  obtain w where 2: "T1 y w" "T2 w z"
-    using prems(2) rel_comp'_def
-    by metis
-  have "Eq_int v w"
-    using 1(2) 2(2) assms[unfolded lifting_unfold]
-    by metis
-  thus "Eq_rep1 x y"
-    using 1(1) 2(1) assms[unfolded lifting_unfold]
-    by metis
-next
-  fix x y z
-  assume prems:
-    "rel_comp' T2 T1 x y"
-    "rel_comp' T2 T1 x z"
-  obtain v where 1: "T1 x v" "T2 v y"
-    using prems(1) rel_comp'_def
-    by metis
-  obtain w where 2: "T1 x w" "T2 w z"
-    using prems(2) rel_comp'_def
-    by metis
-  have "Eq_int v w"
-    using 1(1) 2(1) assms[unfolded lifting_unfold]
-    by metis
-  thus "Eq_abs2 y z"
-    using 1(2) 2(2) assms[unfolded lifting_unfold]
-    by metis
-next
-  fix x y z
-  assume prems:
-    "Eq_rep1 x y"
-    "rel_comp' T2 T1 x z"
-  obtain v where 1: "T1 x v" "T2 v z"
-    using prems(2) rel_comp'_def
-    by metis
-  have 2: "T1 y v"
-    using 1(1) prems(1) assms[unfolded lifting_unfold]
-    by metis
-  show "rel_comp' T2 T1 y z"
-    using 2 1(2) rel_comp'_def
-    by metis
-next
-  fix x y z
-  assume prems:
-    "Eq_abs2 y z"
-    "rel_comp' T2 T1 x y"
-  obtain v where 1: "T1 x v" "T2 v y"
-    using prems(2) rel_comp'_def
-    by metis
-  have 2: "T2 v z"
-    using 1(2) prems(1) assms[unfolded lifting_unfold]
-    by metis
-  show "rel_comp' T2 T1 x z"
-    using 2 1(1) rel_comp'_def
-    by metis
-next
-  fix x
-  assume prem: "Eq_rep1 x x"
-  have 1: "T1 x (abs1 x)"
-    using prem assms(1)[unfolded lifting_unfold]
-    by metis
-  hence "Eq_int (abs1 x) (abs1 x)"
-    using assms(1)[unfolded lifting_unfold]
-    by metis
-  hence "T2 (abs1 x) (abs2 (abs1 x))"
-    using assms(2)[unfolded lifting_unfold]
-    by metis
-  thus "rel_comp' T2 T1 x ((abs2 \<circ> abs1) x)"
-    unfolding rel_comp'_def
-    using 1 by auto
-next
-  fix y
-  assume prem: "Eq_abs2 y y"
-  have 1: "T2 (rep2 y) y"
-    using prem assms(2)[unfolded lifting_unfold]
-    by metis
-  hence "Eq_int (rep2 y) (rep2 y)"
-    using assms(2)[unfolded lifting_unfold]
-    by metis
-  hence "T1 (rep1 (rep2 y)) (rep2 y)"
-    using assms(1)[unfolded lifting_unfold]
-    by metis
-  thus "rel_comp' T2 T1 ((rep1 \<circ> rep2) y) y"
-    unfolding rel_comp'_def
-    using 1 by auto
-qed
 
 definition "functor F \<equiv> (\<forall>f g. F (comp f g) = comp (F f) (F g)) \<and> F id = id"
 
